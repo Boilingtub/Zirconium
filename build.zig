@@ -48,6 +48,9 @@ pub fn build(b: *std.Build) void {
     });
     lib.root_module.addImport("zgltf", zgltf);
 
+    const zstbi = b.dependency("zstbi", .{});
+    lib.root_module.addImport("zstbi", zstbi.module("root"));
+
     b.installArtifact(lib);
 
     const exe_mod = b.createModule(.{

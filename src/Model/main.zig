@@ -45,7 +45,7 @@ pub fn main() !void {
     const window = Zr.Windowing.create_window(1280, 720, window_title);
     defer window.destroy();
     
-    const model = try Zr.load_model(allocator, "./content/ball_model.glb");
+    const model = try Zr.load_model(allocator, "./content/chair.glb");
     defer model.free();
 
     model.print();

@@ -3,28 +3,35 @@ const zglfw = @import("zglfw");
 const zgpu = @import("zgpu");
 const zm = @import("zmath");
 const zgltf = @import("zgltf");
+pub const zstbi = @import("zstbi");
 
-pub export const version = "0.0.2";
+pub export const version = "0.0.3";
 
 pub const Vertex = struct {
     position: [3]f32,
-    color: [4]f32,
+    uv: [2]f32,
+};
+
+pub const Uniforms = extern struct {
+    object_to_clip: zm.Mat,
+    aspect_ratio:f32,
+    mip_level: f32,
 };
 
 pub const Scene = struct {
-    vs: [*:0]const u8,
-    fs: [*:0]const u8,
+    shader: [*:0]const u8,
     verticies: []const Vertex,
     indices: []const u16, 
-    pub fn create(vs: [*:0]const u8, fs: [*:0]const u8,
-    verticies: []const Vertex, indices: []const u16) Scene {
+    texture_image: zstbi.Image,
+    pub fn create(shader: [*:0]const u8,
+    verticies: []const Vertex, indices: []const u16, texture_image: zstbi.Image) Scene {
         if(indices.len == 0) 
             std.debug.print("WARNING! indices_length = 0\n", .{});
         return Scene {
-            .vs = vs,
-            .fs = fs,
+            .shader = shader,
             .verticies = verticies,
             .indices = indices,
+            .texture_image = texture_image 
         };  
     }
 };
@@ -32,7 +39,7 @@ pub const Scene = struct {
 pub const State = struct {
     gctx: *zgpu.GraphicsContext,
 
-    pipeline: zgpu.RenderPipelineHandle,
+    pipeline: zgpu.RenderPipelineHandle = .{},
     bind_group: zgpu.BindGroupHandle,
 
     vertex_buffer: zgpu.BufferHandle,
@@ -40,9 +47,15 @@ pub const State = struct {
 
     depth_texture: zgpu.TextureHandle,
     depth_texture_view: zgpu.TextureViewHandle,
+
+    texture: zgpu.TextureHandle,
+    texture_view: zgpu.TextureViewHandle,
+    sampler: zgpu.SamplerHandle,
+
+    mip_level:i32 = 0,
 };
 
-pub fn init(allocator: std.mem.Allocator, window: *zglfw.Window, scene: *const Scene) !State {
+pub fn init(allocator: std.mem.Allocator, window: *zglfw.Window, scene: *const Scene) !*State {
     const gctx = try zgpu.GraphicsContext.create(allocator, .{
         .window = window,
         .fn_getTime = @ptrCast(&zglfw.getTime),
@@ -56,70 +69,29 @@ pub fn init(allocator: std.mem.Allocator, window: *zglfw.Window, scene: *const S
     }, .{});
     errdefer gctx.destroy(allocator);
 
+    //var arena_state = std.heap.ArenaAllocator.init(allocator);
+    //defer arena_state.deinit();
+    //const arena = arena_state.allocator();
+
     //Create bind group layout needed for render pipeline.
     const bind_group_layout = gctx.createBindGroupLayout(&.{
         zgpu.bufferEntry(0, .{ .vertex = true }, .uniform, true, 0),
+        zgpu.textureEntry(1, .{.fragment = true}, .float, .tvdim_2d, false),
+        zgpu.samplerEntry(2, .{.fragment = true} , .filtering),
     });
     defer gctx.releaseResource(bind_group_layout);
 
-    const pipeline_layout = gctx.createPipelineLayout(&.{bind_group_layout});
-    defer gctx.releaseResource(pipeline_layout);
-
-    const pipeline = pipeline: {
-        const vs_module = zgpu.createWgslShaderModule(gctx.device, scene.vs, "vs");
-        defer vs_module.release();
-        const fs_module = zgpu.createWgslShaderModule(gctx.device, scene.fs, "fs");
-        defer fs_module.release();
-
-        const color_targets = [_]zgpu.wgpu.ColorTargetState{.{
-            .format = zgpu.GraphicsContext.swapchain_format,
-        }};
-
-        const vertex_attributes = [_]zgpu.wgpu.VertexAttribute{
-            .{ .format = .float32x3, .offset = 0, .shader_location = 0 },
-            .{ .format = .float32x4, .offset = @offsetOf(Vertex, "color"), .shader_location = 1 },
-        };
-
-        const vertex_buffers = [_]zgpu.wgpu.VertexBufferLayout{.{
-            .array_stride = @sizeOf(Vertex),
-            .attribute_count = vertex_attributes.len,
-            .attributes = &vertex_attributes,
-        }};
-
-        const pipeline_descriptor = zgpu.wgpu.RenderPipelineDescriptor{ .vertex = zgpu.wgpu.VertexState{
-            .module = vs_module,
-            .entry_point = "main",
-            .buffer_count = vertex_buffers.len,
-            .buffers = &vertex_buffers,
-        }, .primitive = zgpu.wgpu.PrimitiveState{
-            .front_face = .ccw,
-            .cull_mode = .back,
-            .topology = .triangle_list,
-        }, .depth_stencil = &zgpu.wgpu.DepthStencilState{
-            .format = .depth32_float,
-            .depth_write_enabled = true,
-            .depth_compare = .less,
-        }, .fragment = &zgpu.wgpu.FragmentState{
-            .module = fs_module,
-            .entry_point = "main",
-            .target_count = color_targets.len,
-            .targets = &color_targets,
-        } };
-        break :pipeline gctx.createRenderPipeline(pipeline_layout, pipeline_descriptor);
-    };
-
-    const bind_group = gctx.createBindGroup(bind_group_layout, &.{.{ .binding = 0, .buffer_handle = gctx.uniforms.buffer, .offset = 0, .size = @sizeOf(zm.Mat) }});
-
     const vertex_buffer = gctx.createBuffer(.{
-        .usage = .{ .copy_dst = true, .vertex = true },
+        .usage = .{ .copy_dst = true, .vertex = true},
         .size = scene.verticies.len * @sizeOf(Vertex),
     });
     gctx.queue.writeBuffer(
         gctx.lookupResource(vertex_buffer).?,
         0,
         Vertex,
-        scene.verticies,
+        scene.verticies[0..]
     );
+
 
     const index_buffer = gctx.createBuffer(.{
         .usage = .{ .copy_dst = true, .index = true },
@@ -129,25 +101,153 @@ pub fn init(allocator: std.mem.Allocator, window: *zglfw.Window, scene: *const S
         gctx.lookupResource(index_buffer).?,
         0,
         u16,
-        scene.indices,
+        scene.indices[0..]
     );
 
-    const depth = createDepthTexture(gctx);
+    const texture = gctx.createTexture(.{
+        .usage = .{ .texture_binding = true, .copy_dst = true},
+        .size = .{
+            .width = scene.texture_image.width,
+            .height = scene.texture_image.height,
+            .depth_or_array_layers = 1,
+        },
+        .format = zgpu.imageInfoToTextureFormat(
+            scene.texture_image.num_components,
+            scene.texture_image.bytes_per_component,
+            scene.texture_image.is_hdr
+        ),
+        .mip_level_count = std.math.log2_int(
+            u32, 
+            @max(scene.texture_image.width, scene.texture_image.height)) + 1
+    });
 
-    return State{
+    const texture_view = gctx.createTextureView(texture, .{});
+
+    gctx.queue.writeTexture(
+        .{
+            .texture = gctx.lookupResource(texture).?
+        }, 
+        .{ 
+            .bytes_per_row = scene.texture_image.bytes_per_row,
+            .rows_per_image = scene.texture_image.height, 
+        }, 
+        .{ 
+            .width = scene.texture_image.width,
+            .height = scene.texture_image.height
+        },
+        u8,
+        scene.texture_image.data,
+    );
+
+    const sampler = gctx.createSampler(.{});
+
+    const bind_group = gctx.createBindGroup(bind_group_layout, &.{
+        .{ 
+            .binding = 0, 
+            .buffer_handle = gctx.uniforms.buffer,
+            .offset = 0, 
+            .size = 256,
+        },
+        .{
+            .binding = 1, .texture_view_handle =texture_view
+        },
+        .{
+            .binding = 2, .sampler_handle = sampler
+        }
+    });
+
+    const depth = createDepthTexture(gctx);
+    const state = try allocator.create(State);
+    state.* = .{
         .gctx = gctx,
-        .pipeline = pipeline,
         .bind_group = bind_group,
         .vertex_buffer = vertex_buffer,
         .index_buffer = index_buffer,
         .depth_texture = depth.texture,
         .depth_texture_view = depth.view,
+        .texture = texture,
+        .texture_view = texture_view,
+        .sampler = sampler,
     };
+    
+    const commands = commands: {
+        const encoder = gctx.device.createCommandEncoder(null);
+        defer encoder.release();
+
+        gctx.generateMipmaps(allocator, encoder, state.texture);
+         
+        break :commands encoder.finish(null);
+    };
+    defer commands.release();
+    gctx.submit(&.{commands});
+    // (async) create render pipeline 
+    {
+        const pipeline_layout = gctx.createPipelineLayout(&.{
+            bind_group_layout,
+        });
+        defer gctx.releaseResource(pipeline_layout);
+
+        const vs_module = zgpu.createWgslShaderModule(gctx.device, scene.shader, "vs");
+        defer vs_module.release();
+        //const fs_module = zgpu.createWgslShaderModule(gctx.device, scene.shader, "fs");
+        //defer fs_module.release();
+
+        const color_targets = [_]zgpu.wgpu.ColorTargetState{.{
+            .format = zgpu.GraphicsContext.swapchain_format,
+        }};
+
+        const vertex_attributes = [_]zgpu.wgpu.VertexAttribute{
+            .{ .format = .float32x3, .offset = 0, .shader_location = 0 },
+            .{ 
+                .format = .float32x2, .offset = @offsetOf(Vertex, "uv"),
+                .shader_location = 1 
+            },
+        };
+
+        const vertex_buffers = [_]zgpu.wgpu.VertexBufferLayout{.{
+            .array_stride = @sizeOf(Vertex),            
+            .attribute_count = vertex_attributes.len,
+            .attributes = &vertex_attributes,
+        }};
+
+        const pipeline_descriptor = zgpu.wgpu.RenderPipelineDescriptor{ 
+            .vertex = .{
+                .module = vs_module,
+                .entry_point = "vs_main",
+                .buffer_count = vertex_buffers.len,
+                .buffers = &vertex_buffers,
+            }, 
+            .primitive = .{
+                .front_face = .ccw,
+                .cull_mode = .back,
+                .topology = .triangle_list,
+            }, 
+            .depth_stencil = &.{
+                .format = .depth32_float,
+                .depth_write_enabled = true,
+                .depth_compare = .less,
+            },
+            .fragment = &.{
+                .module = vs_module,
+                .entry_point = "fs_main",
+                .target_count = color_targets.len,
+                .targets = &color_targets,
+            } 
+        };
+        gctx.createRenderPipelineAsync(
+            allocator,
+            pipeline_layout,
+            pipeline_descriptor,
+            &state.pipeline
+        );
+    }
+    return state;
 }
 
-pub fn deinit(allocator: std.mem.Allocator, state: *State) void {
+
+pub fn free(allocator: std.mem.Allocator, state: *State) void {
     state.gctx.destroy(allocator);
-    state.* = undefined;
+    allocator.destroy(state);
 }
 
 fn createDepthTexture(gctx: *zgpu.GraphicsContext) struct {
@@ -163,7 +263,7 @@ fn createDepthTexture(gctx: *zgpu.GraphicsContext) struct {
             .depth_or_array_layers = 1,
         },
         .format = .depth32_float,
-        .mip_level_count = 1,
+        //.mip_level_count = 1,
         .sample_count = 1,
     });
     const view = gctx.createTextureView(texture, .{});
@@ -183,6 +283,8 @@ pub fn draw(state: *State) void {
     );
     const cam_view_to_clip = zm.perspectiveFovLh(0.25 * std.math.pi, @as(f32, @floatFromInt(fb_width)) / @as(f32, @floatFromInt(fb_height)), 0.01, 100.0);
     const cam_world_to_clip = zm.mul(cam_world_to_view, cam_view_to_clip);
+    const aspect_ratio = @as(f32, @floatFromInt(fb_width)) / @as(f32, @floatFromInt(fb_height));
+
 
     const back_buffer_view = gctx.swapchain.getCurrentTextureView();
     defer back_buffer_view.release();
@@ -234,8 +336,12 @@ pub fn draw(state: *State) void {
 
                 const object_to_clip = zm.mul(object_to_world, cam_world_to_clip);
 
-                const mem = gctx.uniformsAllocate(zm.Mat, 1);
-                mem.slice[0] = zm.transpose(object_to_clip);
+                const mem = gctx.uniformsAllocate(Uniforms, 1);
+                mem.slice[0] = Uniforms {
+                    .object_to_clip = zm.transpose(object_to_clip),
+                    .aspect_ratio = aspect_ratio, 
+                    .mip_level = @as(f32, @floatFromInt(state.mip_level)),
+                }; 
 
                 pass.setBindGroup(0, bind_group, &.{mem.offset});
 
@@ -251,8 +357,12 @@ pub fn draw(state: *State) void {
 
                 const object_to_clip = zm.mul(object_to_world, cam_world_to_clip);
 
-                const mem = gctx.uniformsAllocate(zm.Mat, 1);
-                mem.slice[0] = zm.transpose(object_to_clip);
+                const mem = gctx.uniformsAllocate(Uniforms, 1);
+                mem.slice[0] = Uniforms {
+                    .object_to_clip = zm.transpose(object_to_clip),
+                    .aspect_ratio = aspect_ratio,
+                    .mip_level = @as(f32, @floatFromInt(state.mip_level)),
+                }; 
 
                 pass.setBindGroup(0, bind_group, &.{mem.offset});
 
@@ -305,6 +415,7 @@ pub const Windowing = struct {
 pub const Model = struct {
     verticies: std.ArrayList(Vertex),
     indices: std.ArrayList(u16),
+    image: *zstbi.Image = undefined,
     pub fn create(allocator: std.mem.Allocator) !Model {
         const verticies = std.ArrayList(Vertex).init(allocator);
         const indices = std.ArrayList(u16).init(allocator);
@@ -369,8 +480,16 @@ pub fn load_model(
                     while(iter.next()) |v| {
                         try model.verticies.append(.{
                             .position = .{ v[0], v[1], v[2] },
-                            .color = .{v[0], v[1], v[2], 1.0},
+                            .uv = .{0,0},
                         });
+                    }
+                },
+                .texcoord => |idx| {
+                    const accessor = gltf.data.accessors.items[idx];
+                    var it = accessor.iterator(f32, &gltf, gltf.glb_binary.?);
+                    var i: u32 = 0;
+                    while (it.next()) |v| : (i += 1) {
+                        model.verticies.items[i].uv = .{ v[0], v[1]};
                     }
                 },
                 else => {}
@@ -380,6 +499,33 @@ pub fn load_model(
     return model;
 }
 
+
+pub export fn Force_image_MipMap_compatible(image: *zstbi.Image) void {
+    const square_size = round_pow_2_up(@max(image.width, image.height));
+    image.* = image.*.resize(square_size,square_size);
+}
+pub export fn round_pow_2_down(a:u32) u32 {
+    var x = a;
+    x |= x>>1;
+    x |= x>>2;
+    x |= x>>4;
+    x |= x>>8;
+    x |= x>>16;
+    x = (x>>1) + 1;
+    return x;
+}
+
+pub export fn round_pow_2_up(a:u32) u32 {
+    var x = a;
+    x -=1;   
+    x |= x>>1;
+    x |= x>>2;
+    x |= x>>4;
+    x |= x>>8;
+    x |= x>>16;
+    x+=1;
+    return x;
+}
 pub export fn print_version() void {
     const stdout_file = std.io.getStdOut().writer();
     var bw = std.io.bufferedWriter(stdout_file);
