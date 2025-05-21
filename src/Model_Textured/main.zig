@@ -24,26 +24,70 @@ pub fn main() !void {
      
     Zr.zstbi.init(allocator);
     defer Zr.zstbi.deinit();
-    var image = try Zr.zstbi.Image.loadFromFile("./content/paint_abstract.jpg", 4);
-    defer image.deinit();
-    Zr.Force_image_MipMap_compatible(&image);
 
-    const model = try Zr.load_model(allocator, "./content/ball_model.glb");
+    var img = try Zr.zstbi.Image.loadFromFile("./content/lava_solidified.jpg", 4);
+    defer img.deinit();
+    Zr.Force_image_MipMap_compatible(&img);
+
+    var model = try Zr.load_model(allocator, "./content/ball_model.glb");
     defer model.free();
 
-    const scene = Zr.Scene.create(
+    var scene = Zr.Scene.create(
         base_shader,
         model.verticies.items,
         model.indices.items,
-        image
+        img
     ); 
     
 
-    const state = try Zr.init(allocator, window, &scene);
+    var state = try Zr.init(allocator, window, &scene);
     defer Zr.free(allocator, state);
 
     while (!window.shouldClose() and window.getKey(.escape) != .press) {
         Zr.Windowing.pollEvents();
+        var recreate_state :bool = false;
+
+        if(window.getKey( .one ) == .press) {
+            img = try Zr.zstbi.Image.loadFromFile("./content/paint_abstract.jpg", 4);
+            recreate_state =true;
+        }
+        if(window.getKey( .two ) == .press) {
+            img = try Zr.zstbi.Image.loadFromFile("./content/dry_dusty_dirt.jpg", 4);
+            recreate_state =true;
+        }
+        if(window.getKey( .three ) == .press) {
+            img = try Zr.zstbi.Image.loadFromFile("./content/lava_solidified.jpg", 4);
+            recreate_state =true;
+        }
+        if(window.getKey( .four ) == .press) {
+            img = try Zr.zstbi.Image.loadFromFile("./content/face_img.jpg", 4);
+            recreate_state =true;
+        }
+        if(window.getKey( .q ) == .press) {
+            model = try Zr.load_model(allocator, "./content/ball_model.glb");
+            recreate_state =true;
+        }
+        if(window.getKey( .w ) == .press) {
+            model = try Zr.load_model(allocator, "./content/cube.glb");
+            recreate_state =true;
+        }
+        if(window.getKey( .e ) == .press) {
+            model = try Zr.load_model(allocator, "./content/chair.glb");
+            recreate_state =true;
+        }
+
+        if(recreate_state) {
+            Zr.Force_image_MipMap_compatible(&img);
+
+            scene = Zr.Scene.create(
+                base_shader,
+                model.verticies.items,
+                model.indices.items,
+                img
+            ); 
+            state = try Zr.init(allocator, window, &scene);
+        }
+
         Zr.draw(state);
     }
 }
