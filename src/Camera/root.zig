@@ -1,4 +1,4 @@
-const version = "0.0.3";
+const version = "0.0.4";
 const std = @import("std");
 const zglfw = @import("zglfw");
 const zgpu = @import("zgpu");
