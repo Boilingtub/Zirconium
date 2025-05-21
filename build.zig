@@ -1,6 +1,6 @@
 const std = @import("std");
     
-const sample = "Model_Textured";
+const sample = "Camera";
 
 pub fn build(b: *std.Build) void {
     const cwd_path = "src/" ++ sample ++ "/";
@@ -43,13 +43,24 @@ pub fn build(b: *std.Build) void {
     });
     lib.root_module.addImport("zmath", zmath.module("root"));
     
+
+    //model.zig
+    const model = b.addModule("model", .{
+        .root_source_file = b.path(cwd_path ++ "model.zig")
+    });
     const zgltf = b.addModule("zgltf", .{
         .root_source_file = b.path("libs/zgltf/main.zig")
     });
-    lib.root_module.addImport("zgltf", zgltf);
+    model.addImport("zgltf", zgltf);
+    lib.root_module.addImport("model", model);
 
+    //image.zig
+    const image = b.addModule("image", .{
+        .root_source_file = b.path(cwd_path ++ "image.zig")
+    });
     const zstbi = b.dependency("zstbi", .{});
-    lib.root_module.addImport("zstbi", zstbi.module("root"));
+    image.addImport("zstbi", zstbi.module("root"));
+    lib.root_module.addImport("image", image);
 
     b.installArtifact(lib);
 
