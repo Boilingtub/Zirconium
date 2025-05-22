@@ -1,6 +1,6 @@
 const std = @import("std");
     
-const sample = "Camera";
+const sample = "Skybox";
 
 pub fn build(b: *std.Build) void {
     const cwd_path = "src/" ++ sample ++ "/";
@@ -43,7 +43,6 @@ pub fn build(b: *std.Build) void {
     });
     lib.root_module.addImport("zmath", zmath.module("root"));
     
-
     //model.zig
     const model = b.addModule("model", .{
         .root_source_file = b.path(cwd_path ++ "model.zig")
@@ -61,6 +60,14 @@ pub fn build(b: *std.Build) void {
     const zstbi = b.dependency("zstbi", .{});
     image.addImport("zstbi", zstbi.module("root"));
     lib.root_module.addImport("image", image);
+    //camera.zig 
+    const camera = b.addModule("camera", .{
+        .root_source_file = b.path(cwd_path ++ "camera.zig")
+    });
+    camera.addImport("zmath",zmath.module("root"));
+    lib.root_module.addImport("camera", camera);
+
+
 
     b.installArtifact(lib);
 
