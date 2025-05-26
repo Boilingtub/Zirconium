@@ -43,6 +43,10 @@ pub fn main() !void {
 
     var state = try Zr.init(allocator, window, &scene);
     defer Zr.free(allocator, state);
+    state.camera.position = .{0.0,2.0,3.0};
+    state.camera.pitch = -(std.math.pi/2.0);
+    state.camera.yaw = std.math.pi + 0.25 * std.math.pi;
+
 
     while (!window.shouldClose() and window.getKey(.escape) != .press) {
         Zr.Windowing.pollEvents();

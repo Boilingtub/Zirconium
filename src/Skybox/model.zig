@@ -3,7 +3,16 @@ const std = @import("std");
 
 pub const Vertex = struct {
     position: [3]f32,
-    uv: [2]f32,
+    normal: [3]f32,
+    texcoord: [2]f32,
+    tangent: [4]f32,
+};
+
+pub const Mesh = struct {
+    index_offset: u32,
+    vertex_offset: i32,
+    num_indices: u32,
+    num_vertices: u32,
 };
 
 pub const Model = struct {

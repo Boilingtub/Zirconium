@@ -44,6 +44,10 @@ pub fn main() !void {
     var state = try Zr.init(allocator, window, &scene);
     defer Zr.free(allocator, state);
 
+    state.camera.position = .{3.0,2.0,3.0};
+    state.camera.pitch = -(3.14/4.0);
+    state.camera.yaw = -(3.14/2.0);
+
     while (!window.shouldClose() and window.getKey(.escape) != .press) {
         Zr.Windowing.pollEvents();
         const delta_time = (state.gctx.stats.delta_time);

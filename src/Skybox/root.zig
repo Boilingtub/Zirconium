@@ -1,4 +1,4 @@
-const version = "0.0.4";
+const version = "0.0.5";
 const std = @import("std");
 const zglfw = @import("zglfw");
 const zgpu = @import("zgpu");
@@ -7,15 +7,15 @@ pub const model = @import("model");
 pub const image = @import("image");
 pub const Camera = @import("camera.zig").Camera;
 
-
-
 pub const zstbi = image.zstbi;
 const Vertex = model.Vertex;
+const Mesh = model.Mesh;
 
 pub const Uniforms = extern struct {
-    object_to_clip: zm.Mat,
-    aspect_ratio:f32,
-    mip_level: f32,
+    object_to_world: zm.Mat,
+    world_to_clip: zm.Mat,
+    camera_position: [3]f32,
+    draw_mode: i32,
 };
 
 pub const Scene = struct {
@@ -38,8 +38,8 @@ pub const Scene = struct {
 
 pub const State = struct {
     camera: Camera,
-
     gctx: *zgpu.GraphicsContext,
+    window: *zglfw.Window,
 
     pipeline: zgpu.RenderPipelineHandle = .{},
     bind_group: zgpu.BindGroupHandle,
@@ -49,6 +49,8 @@ pub const State = struct {
 
     depth_texture: zgpu.TextureHandle,
     depth_texture_view: zgpu.TextureViewHandle,
+
+    meshes: std.Arraylist(Mesh),
 
     texture: zgpu.TextureHandle,
     texture_view: zgpu.TextureViewHandle,

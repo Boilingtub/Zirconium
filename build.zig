@@ -23,8 +23,6 @@ pub fn build(b: *std.Build) void {
         if (b.lazyDependency("system_sdk", .{})) |system_sdk| {
             lib_mod.addLibraryPath(system_sdk.path("linux/lib/x86_64-linux-gnu"));
         }
-    }
-
     const zglfw = b.dependency("zglfw", .{
         .target = target,
     });
@@ -119,4 +117,5 @@ pub fn build(b: *std.Build) void {
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_lib_unit_tests.step);
     test_step.dependOn(&run_exe_unit_tests.step);
+}
 }
