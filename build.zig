@@ -1,6 +1,6 @@
 const std = @import("std");
     
-const sample = "Skybox";
+const sample = "Meshes";
 
 pub fn build(b: *std.Build) void {
     const cwd_path = "src/" ++ sample ++ "/";
