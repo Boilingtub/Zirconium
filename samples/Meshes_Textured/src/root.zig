@@ -31,6 +31,7 @@ fn initScene(
     meshes_indices: *std.ArrayList(model.IndexType),
     meshes_positions: *std.ArrayList([3]f32),
     meshes_normals: *std.ArrayList([3]f32),
+    meshes_texcoords: *std.ArrayList([2]f32),
 ) void {
     var arena_state = std.heap.ArenaAllocator.init(allocator);
     defer arena_state.deinit();
@@ -44,7 +45,14 @@ fn initScene(
             .basecolor_roughness = .{ 1.0, 0.0, 0.0, 0.0 },
         }) catch unreachable;
 
-        model.appendMesh(mesh, meshes, meshes_indices, meshes_positions, meshes_normals);
+        model.appendMesh(
+            mesh,
+            meshes,
+            meshes_indices,
+            meshes_positions,
+            meshes_normals,
+            meshes_texcoords
+        );
     }
 
     {
@@ -54,25 +62,46 @@ fn initScene(
             .position = .{ 0, -1, 0 },
             .basecolor_roughness = .{ 0.0, 1.0, 0.0, 0.0 },
         }) catch unreachable;
-        model.appendMesh(mesh, meshes, meshes_indices, meshes_positions, meshes_normals);
+        model.appendMesh(
+            mesh,
+            meshes,
+            meshes_indices,
+            meshes_positions,
+            meshes_normals,
+            meshes_texcoords
+        );
     }
     {
-        const mesh = model.load_file(arena, "./content/ball_model.glb") catch unreachable ;
+        const mesh = model.load_gltf_file(arena, "./content/ball_model.glb") catch unreachable ;
         drawables.append(.{
             .mesh_index = @as(u32, @intCast(meshes.items.len)),
             .position = .{ 6, 1, 0 },
             .basecolor_roughness = .{ 0.0, 0.0, 1.0, 0.6 },
         }) catch unreachable;
-        model.appendMesh(mesh, meshes, meshes_indices, meshes_positions, meshes_normals);
+        model.appendMesh(
+            mesh,
+            meshes,
+            meshes_indices,
+            meshes_positions,
+            meshes_normals,
+            meshes_texcoords
+        );
     }
     {
-        const mesh = model.load_file(arena, "./content/chair.glb") catch unreachable;
+        const mesh = model.load_gltf_file(arena, "./content/chair.glb") catch unreachable;
         drawables.append(.{
             .mesh_index = @as(u32, @intCast(meshes.items.len)),
             .position = .{ 3, 1, 0 },
             .basecolor_roughness = .{ 0.5, 0.7, 0.2, 0.6 },
         }) catch unreachable;
-        model.appendMesh(mesh, meshes, meshes_indices, meshes_positions, meshes_normals);
+        model.appendMesh(
+            mesh,
+            meshes,
+            meshes_indices,
+            meshes_positions,
+            meshes_normals,
+            meshes_texcoords
+        );
     }
 }
 
@@ -204,9 +233,10 @@ pub fn init(allocator: std.mem.Allocator, window: *zglfw.Window) !*State {
     var meshes_indices = std.ArrayList(model.IndexType).init(arena);
     var meshes_positions = std.ArrayList([3]f32).init(arena);
     var meshes_normals = std.ArrayList([3]f32).init(arena);
+    var meshes_texcoords = std.ArrayList([2]f32).init(arena);
     initScene(allocator, &drawables, &meshes,
               &meshes_indices, &meshes_positions,
-              &meshes_normals);
+              &meshes_normals, &meshes_texcoords);
     const total_num_vertices = @as(u32, @intCast(meshes_positions.items.len));
     const total_num_indices = @as(u32, @intCast(meshes_indices.items.len));
 
@@ -223,6 +253,7 @@ pub fn init(allocator: std.mem.Allocator, window: *zglfw.Window) !*State {
         for (meshes_positions.items, 0..) |_, i| {
             vertex_data.items[i].position = meshes_positions.items[i];
             vertex_data.items[i].normal = meshes_normals.items[i];
+            vertex_data.items[i].texcoord = meshes_texcoords.items[i];
         }
         gctx.queue.writeBuffer(gctx.lookupResource(vertex_buffer).?,
                                0, Vertex, vertex_data.items);

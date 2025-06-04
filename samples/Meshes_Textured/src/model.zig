@@ -1,4 +1,5 @@
 const zgltf = @import("zgltf");
+const zobj = @import("zobj");
 const std = @import("std");
 
 pub const IndexType = u16;
@@ -28,6 +29,7 @@ pub fn appendMesh(
     meshes_indices: *std.ArrayList(IndexType),
     meshes_positions: *std.ArrayList([3]f32),
     meshes_normals: *std.ArrayList([3]f32),
+    meshes_texcoords: *std.ArrayList([2]f32),
 ) void {
     meshes.append(.{
         .index_offset = @as(u32, @intCast(meshes_indices.items.len)),
@@ -39,6 +41,7 @@ pub fn appendMesh(
     meshes_indices.appendSlice(mesh.indices) catch unreachable;
     meshes_positions.appendSlice(mesh.positions) catch unreachable;
     meshes_normals.appendSlice(mesh.normals) catch unreachable;
+    meshes_texcoords.appendSlice(mesh.texcoords) catch unreachable;
 }
 
 pub const Model = struct {
@@ -67,7 +70,9 @@ pub const Model = struct {
     }
 };
 
-pub fn load_file(
+//pub fn load_obj_file(allocator: std.mem.Allocator, path: []const u8,) !Model {}
+
+pub fn load_gltf_file(
     allocator: std.mem.Allocator,
     path: []const u8) !Model {
     const buf = std.fs.cwd().readFileAllocOptions(
@@ -119,7 +124,7 @@ pub fn load_file(
                     var it = accessor.iterator(f32, &gltf, gltf.glb_binary.?);
                     var i: u32 = 0;
                     while (it.next()) |v| : (i += 1) {
-                       try  out_texcoords.append(.{ v[0], v[1]});
+                        try out_texcoords.append(.{ v[0], v[1]});
                     }
                 },
                 .normal => |idx| {
@@ -141,6 +146,8 @@ pub fn load_file(
         .texcoords = out_texcoords.items[0..],
     };
 }
+
+
 
 pub const Primitive = struct {
     pub fn plane(allocator: std.mem.Allocator) !Model {

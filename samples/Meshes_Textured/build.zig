@@ -51,6 +51,10 @@ pub fn build(b: *std.Build,
         .root_source_file = b.path("./libs/zgltf/main.zig")
     });
     model.addImport("zgltf", zgltf);
+    const zobj = b.addModule("zobj", .{
+        .root_source_file = b.path("./libs/zobj/src/main.zig")
+    });
+    model.addImport("zobj", zobj);
     lib.root_module.addImport("model", model);
 
     //image.zig

@@ -1,0 +1,90 @@
+* zig-obj
+[[https://github.com/chip2n/zig-obj/workflows/CI/badge.svg]]
+
+Minimal Zig parser for ~.obj~ and ~.mtl~ files.
+
+** Features
+
+The following features are implemented:
+
+OBJ files:
+- Vertices
+- Texture coordinates
+- Normals
+- Objects
+
+MTL files:
+- Bump map
+- Diffuse map
+- Specular map
+- Ambient map
+- Roughness map
+- Metallic map
+- Sheen map
+- Emissive map
+- Normal map
+- Ambient color
+- Diffuse color
+- Specular color
+- Specular highlight
+- Emissive coefficient
+- Optical density
+- Dissolve
+- Illumination
+- Roughness
+- Metallic
+- Sheen
+- Clearcoat thickness
+- Clearcoat roughness
+- Anisotropy
+- Anisotropy rotation
+
+If something is missing or not working properly, feel free to open an issue/pull
+request and I'll take a look.
+
+** Getting started
+
+Add module to your projects ~build.zig.zon~ file:
+
+#+begin_src bash
+zig fetch --save git+https://github.com/chip2n/zig-obj.git
+#+end_src
+
+Add the dependency to your executable in ~build.zig~:
+
+#+begin_src zig
+pub fn build(b: *std.build.Builder) void {
+    ...
+    const obj_mod = b.dependency("obj", .{ .target = target, .optimize = optimize }).module("obj");
+    exe_mod.addImport("obj", obj_mod);
+}
+#+end_src
+
+** Building a static library
+
+Build a static library by running:
+
+#+begin_src bash
+zig build
+#+end_src
+
+** Usage
+
+#+begin_src zig
+const obj = @import("obj");
+
+var model = try obj.parseObj(allocator, @embedFile("cube.obj"));
+defer model.deinit(allocator);
+var material = try obj.parseMtl(allocator, @embedFile("cube.mtl"));
+defer material.deinit(allocator);
+#+end_src
+
+** Running tests
+
+Tests are being ran automatically each day using the nightly Zig build.
+
+Run the test suite manually with:
+
+#+begin_src bash
+zig build test
+#+end_src

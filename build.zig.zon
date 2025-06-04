@@ -8,10 +8,6 @@
             .url = "https://github.com/zig-gamedev/system_sdk/archive/c0dbf11cdc17da5904ea8a17eadc54dee26567ec.tar.gz",
             .hash = "system_sdk-0.3.0-dev-alwUNnYaaAJAtIdE2fg4NQfDqEKs7QCXy_qYukAOBfmF",
         },
-        .zpool = .{
-            .url = "https://github.com/zig-gamedev/zpool/archive/4c850e222e1ba507b45d7bab8cac83bdd74cacd6.tar.gz",
-            .hash = "zpool-0.11.0-dev-bG692aVDAQBCKslGROl47fqnnp7HFYV8fI-8z3wY06xx",
-        },
         .zstbi = .{
             .url = "https://github.com/zig-gamedev/zstbi/archive/094c4bba5cdbec167d3f6aaa98cccccd5c99145f.tar.gz",
             .hash = "zstbi-0.11.0-dev-L0Ea_-eVBwCl8RYA98PhLDw3Fhw5k7FJOHSMDKWDOvqx",
@@ -21,10 +17,6 @@
             .hash = "zmath-0.11.0-dev-wjwivTArAwDIkHSuSiU3KuBvxh7igjJjJMqYRfy3hihO",
         },
         .zglfw = .{
-            .url = "https://github.com/zig-gamedev/zglfw/archive/c337cb3d3f984468ea7a386335937a5d555fc024.tar.gz",
-            .hash = "zglfw-0.10.0-dev-zgVDNMacIQA-k7kNSfwUc9Lfzx-bb_wklVm25K-p8Tr7",
-        },
-        .zgltf = .{
             .url = "https://github.com/zig-gamedev/zglfw/archive/c337cb3d3f984468ea7a386335937a5d555fc024.tar.gz",
             .hash = "zglfw-0.10.0-dev-zgVDNMacIQA-k7kNSfwUc9Lfzx-bb_wklVm25K-p8Tr7",
         },
