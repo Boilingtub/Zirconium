@@ -1,18 +1,16 @@
-const version = "0.0.6";
+const version = "0.0.5";
 const std = @import("std");
 const zglfw = @import("zglfw");
 const zgpu = @import("zgpu");
 pub const zm = @import("zmath");
-pub const mesh = @import("mesh");
-pub const zstbi = @import("zstbi");
+pub const model = @import("model");
+pub const zimage = @import("image");
 pub const Camera = @import("camera.zig").Camera;
 
-pub const Image = zstbi.Image;
-
-pub const Vertex = mesh.Vertex;
-pub const IndexType = mesh.IndexType;
-pub const Mesh = mesh.Mesh;
-pub const Drawable = mesh.Drawable;
+pub const zstbi = zimage.zstbi;
+pub const Vertex = model.Vertex;
+pub const Mesh = model.Mesh;
+pub const Drawable = model.Drawable;
 
 const base_shader = @embedFile("./shaders/base.wgsl");
 
@@ -22,16 +20,15 @@ const FrameUniforms = struct {
 };
 const DrawUniforms = struct {
     object_to_world: zm.Mat,
-    texture_index: u32,
     basecolor_roughness: [4]f32,
+    mip_level: f32,
 };
 
 fn initScene(
     allocator: std.mem.Allocator,
     drawables: *std.ArrayList(Drawable),
     meshes: *std.ArrayList(Mesh),
-    images: *std.ArrayList(Image),
-    meshes_indices: *std.ArrayList(IndexType),
+    meshes_indices: *std.ArrayList(model.IndexType),
     meshes_positions: *std.ArrayList([3]f32),
     meshes_normals: *std.ArrayList([3]f32),
     meshes_texcoords: *std.ArrayList([2]f32),
@@ -40,25 +37,16 @@ fn initScene(
     defer arena_state.deinit();
     const arena = arena_state.allocator();
 
-    zstbi.init(allocator); //must use allocator else image data cleared on return
-
     {
-        const new_mesh = mesh.Primitive.cube(arena) catch unreachable;
-        var new_image = zstbi.Image.loadFromFile("./content/128x128_textures/genart.png", 4) 
-        catch unreachable;
-        Force_image_MipMap_compatible(&new_image);
-
-
+        const mesh = model.Primitive.cube(arena) catch unreachable;
         drawables.append(.{
             .mesh_index = @as(u32, @intCast(meshes.items.len)),
-            .texture_index = @as(u32, @intCast(images.items.len)),
-            .position = .{ 9, 0, 5 },
-            .basecolor_roughness = .{ 1.0, 1.0, 1.0, 0.0 },
+            .position = .{ 9, 1, 0 },
+            .basecolor_roughness = .{ 1.0, 0.0, 0.0, 0.0 },
         }) catch unreachable;
 
-        images.append(new_image) catch unreachable;
-        mesh.appendMesh(
-            new_mesh,
+        model.appendMesh(
+            mesh,
             meshes,
             meshes_indices,
             meshes_positions,
@@ -68,22 +56,14 @@ fn initScene(
     }
 
     {
-        const new_mesh = mesh.Primitive.plane(arena) catch unreachable;
-        var new_image = zstbi.Image.loadFromFile("./content/128x128_textures/face_img.jpg", 4) 
-        catch unreachable;
-        Force_image_MipMap_compatible(&new_image);
-
-
+        const mesh = model.Primitive.plane(arena) catch unreachable;
         drawables.append(.{
             .mesh_index = @as(u32, @intCast(meshes.items.len)),
-            .texture_index = @as(u32, @intCast(images.items.len)),
-            .position = .{ 6, 0, 5 },
-            .basecolor_roughness = .{ 1.0, 1.0, 1.0, 0.0 },
+            .position = .{ 0, -1, 0 },
+            .basecolor_roughness = .{ 0.0, 1.0, 0.0, 0.0 },
         }) catch unreachable;
-
-        images.append(new_image) catch unreachable;
-        mesh.appendMesh(
-            new_mesh,
+        model.appendMesh(
+            mesh,
             meshes,
             meshes_indices,
             meshes_positions,
@@ -92,22 +72,14 @@ fn initScene(
         );
     }
     {
-        const new_mesh = mesh.load_gltf_file(arena,"./content/cube.glb") catch unreachable;
-        var new_image = zstbi.Image.loadFromFile("./content/128x128_textures/stone_rocks.jpg", 4) 
-        catch unreachable;
-        Force_image_MipMap_compatible(&new_image);
-
-
+        const mesh = model.load_gltf_file(arena,"./content/cube.glb") catch unreachable;
         drawables.append(.{
             .mesh_index = @as(u32, @intCast(meshes.items.len)),
-            .texture_index = @as(u32, @intCast(images.items.len)),
-            .position = .{ 3, 0, 5 },
+            .position = .{ -2, -1, 0 },
             .basecolor_roughness = .{ 1.0, 1.0, 1.0, 0.0 },
         }) catch unreachable;
-
-        images.append(new_image) catch unreachable;
-        mesh.appendMesh(
-            new_mesh,
+        model.appendMesh(
+            mesh,
             meshes,
             meshes_indices,
             meshes_positions,
@@ -116,22 +88,14 @@ fn initScene(
         );
     }
     {
-        const new_mesh = mesh.load_gltf_file(arena, "./content/ball_model.glb") catch unreachable ;
-        var new_image = zstbi.Image.loadFromFile("./content/128x128_textures/paint_abstract.jpg", 4) 
-        catch unreachable;
-        Force_image_MipMap_compatible(&new_image);
-
-
+        const mesh = model.load_gltf_file(arena, "./content/ball_model.glb") catch unreachable ;
         drawables.append(.{
             .mesh_index = @as(u32, @intCast(meshes.items.len)),
-            .texture_index = @as(u32, @intCast(images.items.len)),
-            .position = .{ 0, 0, 5 },
+            .position = .{ 6, 1, 0 },
             .basecolor_roughness = .{ 0.0, 0.0, 1.0, 0.6 },
         }) catch unreachable;
-
-        images.append(new_image) catch unreachable;
-        mesh.appendMesh(
-            new_mesh,
+        model.appendMesh(
+            mesh,
             meshes,
             meshes_indices,
             meshes_positions,
@@ -140,22 +104,14 @@ fn initScene(
         );
     }
     {
-        const new_mesh = mesh.load_gltf_file(arena, "./content/chair.glb") catch unreachable;
-        var new_image = zstbi.Image.loadFromFile("./content/128x128_textures/lava_solidified.jpg", 4) 
-        catch unreachable;
-        Force_image_MipMap_compatible(&new_image);
-
-
+        const mesh = model.load_gltf_file(arena, "./content/chair.glb") catch unreachable;
         drawables.append(.{
             .mesh_index = @as(u32, @intCast(meshes.items.len)),
-            .texture_index = @as(u32, @intCast(images.items.len)),
-            .position = .{ -3, 0, 5 },
+            .position = .{ 3, 1, 0 },
             .basecolor_roughness = .{ 0.5, 0.7, 0.2, 0.6 },
         }) catch unreachable;
-
-        images.append(new_image) catch unreachable;
-        mesh.appendMesh(
-            new_mesh,
+        model.appendMesh(
+            mesh,
             meshes,
             meshes_indices,
             meshes_positions,
@@ -184,10 +140,10 @@ pub const State = struct {
     meshes: std.ArrayList(Mesh),
     drawables: std.ArrayList(Drawable),
 
-    diffuse_texture_array: zgpu.TextureHandle,
-    diffuse_texture_array_view: zgpu.TextureViewHandle,
-
+    texture: zgpu.TextureHandle,
+    texture_view: zgpu.TextureViewHandle,
     sampler: zgpu.SamplerHandle,
+
     mip_level: f32 = 0,
 };
 
@@ -209,76 +165,44 @@ pub fn init(allocator: std.mem.Allocator, window: *zglfw.Window) !*State {
     defer arena_state.deinit();
     const arena = arena_state.allocator();
 
-    var drawables = std.ArrayList(Drawable).init(allocator);
-    var meshes = std.ArrayList(Mesh).init(allocator);
-    var images = std.ArrayList(Image).init(arena);
-    var meshes_indices = std.ArrayList(IndexType).init(arena);
-    var meshes_positions = std.ArrayList([3]f32).init(arena);
-    var meshes_normals = std.ArrayList([3]f32).init(arena);
-    var meshes_texcoords = std.ArrayList([2]f32).init(arena);
-    initScene(allocator, &drawables, &meshes, &images,
-              &meshes_indices, &meshes_positions,
-              &meshes_normals, &meshes_texcoords);
-    const total_num_vertices = @as(u32, @intCast(meshes_positions.items.len));
-    const total_num_indices = @as(u32, @intCast(meshes_indices.items.len));
+    zimage.init(arena);
+    var texture_image = try zimage.load("./content/lava_solidified.jpg", 4);
+    zimage.Force_image_MipMap_compatible(&texture_image);
 
-    const def_tex_width = images.items[0].width;
-    const def_tex_height = images.items[0].height;
-    const def_tex_num_components = images.items[0].num_components;
-    const def_tex_bytes_per_component = images.items[0].bytes_per_component;
-    const def_tex_is_hdr = images.items[0].is_hdr;
-    const def_tex_layer_count:u32 = @intCast(images.items.len);
-    const def_tex_bytes_per_row = images.items[0].bytes_per_row;
-
-    const texture_array_descriptor = zgpu.wgpu.TextureDescriptor {
+    const texture = gctx.createTexture(.{
         .usage = .{ .texture_binding = true, .copy_dst = true},
-        .size = .{ 
-            .width = def_tex_width,
-            .height = def_tex_height, 
-            .depth_or_array_layers = def_tex_layer_count,
+        .size = .{
+            .width = texture_image.width,
+            .height = texture_image.height,
+            .depth_or_array_layers = 1,
         },
-        .format = zgpu.imageInfoToTextureFormat( 
-            def_tex_num_components,
-            def_tex_bytes_per_component,
-            def_tex_is_hdr,
+        .format = zgpu.imageInfoToTextureFormat(
+            texture_image.num_components,
+            texture_image.bytes_per_component,
+            texture_image.is_hdr
         ),
-
         .mip_level_count = std.math.log2_int(
             u32, 
-            @max(def_tex_width, def_tex_height)) + 1
-    };
-    const texture_array = gctx.createTexture(texture_array_descriptor);
+            @max(texture_image.width, texture_image.height)) + 1
+    });
 
-    const texture_array_view_descriptor = zgpu.wgpu.TextureViewDescriptor {
-        .dimension = .tvdim_2d_array,
-        .base_array_layer = 0,
-        .array_layer_count = @intCast(images.items.len),
-    };
-    const texture_array_view = gctx.createTextureView(
-        texture_array, 
-        texture_array_view_descriptor
+    const texture_view = gctx.createTextureView(texture, .{});
+
+    gctx.queue.writeTexture(
+        .{
+            .texture = gctx.lookupResource(texture).?
+        }, 
+        .{ 
+            .bytes_per_row = texture_image.bytes_per_row,
+            .rows_per_image = texture_image.height, 
+        }, 
+        .{ 
+            .width = texture_image.width,
+            .height = texture_image.height
+        },
+        u8,
+        texture_image.data,
     );
-
-    for(0..images.items.len) |layer| {
-        gctx.queue.writeTexture(
-            .{
-                .texture = gctx.lookupResource(texture_array).?,
-                .origin = .{.x = 0, .y = 0, .z = @intCast(layer)},
-                .mip_level = 0,
-            }, 
-            .{ 
-                .bytes_per_row = def_tex_bytes_per_row,
-                .rows_per_image = def_tex_height, 
-            }, 
-            .{ 
-                .width = def_tex_width,
-                .height = def_tex_height,
-                .depth_or_array_layers = 1,
-            },
-            u8,
-            images.items[layer].data,   
-        ); 
-    }
 
     const sampler = gctx.createSampler(.{});
     const depth = createDepthTexture(gctx);
@@ -300,12 +224,11 @@ pub fn init(allocator: std.mem.Allocator, window: *zglfw.Window) !*State {
     //Create bind group layout needed for render pipeline.
     const draw_bind_group_layout = gctx.createBindGroupLayout(&.{
         zgpu.bufferEntry(0, .{ .vertex = true, .fragment=true }, .uniform, true, 0),
-        zgpu.textureEntry(1, .{.fragment = true}, .float, .tvdim_2d_array, false),
+        zgpu.textureEntry(1, .{.fragment = true}, .float, .tvdim_2d, false),
         zgpu.samplerEntry(2, .{.fragment = true} , .filtering),
     });
     defer gctx.releaseResource(draw_bind_group_layout);
     //create draw_bind_group from draw_bind_group_layout;
-    
     const draw_bind_group = gctx.createBindGroup(draw_bind_group_layout,&.{
         .{
             .binding = 0,
@@ -314,15 +237,24 @@ pub fn init(allocator: std.mem.Allocator, window: *zglfw.Window) !*State {
             .size = @sizeOf(DrawUniforms),
         },
         .{
-            .binding = 1,
-            .texture_view_handle = texture_array_view,
+            .binding = 1, .texture_view_handle = texture_view
         },
         .{
-            .binding = 2,
-            .sampler_handle = sampler
+            .binding = 2, .sampler_handle = sampler
         }
 
     });
+    var drawables = std.ArrayList(Drawable).init(allocator);
+    var meshes = std.ArrayList(Mesh).init(allocator);
+    var meshes_indices = std.ArrayList(model.IndexType).init(arena);
+    var meshes_positions = std.ArrayList([3]f32).init(arena);
+    var meshes_normals = std.ArrayList([3]f32).init(arena);
+    var meshes_texcoords = std.ArrayList([2]f32).init(arena);
+    initScene(allocator, &drawables, &meshes,
+              &meshes_indices, &meshes_positions,
+              &meshes_normals, &meshes_texcoords);
+    const total_num_vertices = @as(u32, @intCast(meshes_positions.items.len));
+    const total_num_indices = @as(u32, @intCast(meshes_indices.items.len));
 
     // Create a vertex buffer.
     const vertex_buffer = gctx.createBuffer(.{
@@ -346,10 +278,10 @@ pub fn init(allocator: std.mem.Allocator, window: *zglfw.Window) !*State {
     // Create an index buffer.
     const index_buffer = gctx.createBuffer(.{
         .usage = .{ .copy_dst = true, .index = true },
-        .size = total_num_indices * @sizeOf(IndexType),
+        .size = total_num_indices * @sizeOf(model.IndexType),
     });
     gctx.queue.writeBuffer(gctx.lookupResource(index_buffer).?,
-                           0, IndexType, meshes_indices.items);
+                           0, model.IndexType, meshes_indices.items);
 
 
     const state = try allocator.create(State);
@@ -364,8 +296,8 @@ pub fn init(allocator: std.mem.Allocator, window: *zglfw.Window) !*State {
         .depth_texture_view = depth.view,
         .meshes = meshes,
         .drawables = drawables,
-        .diffuse_texture_array = texture_array,
-        .diffuse_texture_array_view = texture_array_view,
+        .texture = texture,
+        .texture_view = texture_view,
         .sampler = sampler,
     };
     
@@ -373,7 +305,7 @@ pub fn init(allocator: std.mem.Allocator, window: *zglfw.Window) !*State {
         const encoder = gctx.device.createCommandEncoder(null);
         defer encoder.release();
 
-        gctx.generateMipmaps(allocator, encoder, state.diffuse_texture_array);
+        gctx.generateMipmaps(allocator, encoder, state.texture);
          
         break :commands encoder.finish(null);
     };
@@ -448,6 +380,35 @@ pub fn init(allocator: std.mem.Allocator, window: *zglfw.Window) !*State {
         return state;
 }
 
+
+pub fn deinit(allocator: std.mem.Allocator, state: *State) void {
+    state.gctx.destroy(allocator);
+    state.meshes.deinit();
+    state.drawables.deinit();
+    allocator.destroy(state);
+    state.* = undefined;
+}
+
+fn createDepthTexture(gctx: *zgpu.GraphicsContext) struct {
+    texture: zgpu.TextureHandle,
+    view: zgpu.TextureViewHandle,
+} {
+    const texture = gctx.createTexture(.{
+        .usage = .{ .render_attachment = true },
+        .dimension = .tdim_2d,
+        .size = .{
+            .width = gctx.swapchain_descriptor.width,
+            .height = gctx.swapchain_descriptor.height,
+            .depth_or_array_layers = 1,
+        },
+        .format = .depth32_float,
+        //.mip_level_count = 1,
+        .sample_count = 1,
+    });
+    const view = gctx.createTextureView(texture, .{});
+    return .{ .texture = texture, .view = view };
+}
+
 pub fn draw(state: *State) void {
     const gctx = state.gctx;
     const fb_width = gctx.swapchain_descriptor.width;
@@ -467,6 +428,7 @@ pub fn draw(state: *State) void {
     //const aspect_ratio = @as(
     //    f32, @floatFromInt(fb_width)) / @as(f32, @floatFromInt(fb_height)
     //);
+
 
     const back_buffer_view = gctx.swapchain.getCurrentTextureView();
     defer back_buffer_view.release();
@@ -509,7 +471,7 @@ pub fn draw(state: *State) void {
             pass.setVertexBuffer(0, vb_info.gpuobj.?, 0, vb_info.size);
             pass.setIndexBuffer(
                 ib_info.gpuobj.?,
-                if (IndexType == u16) .uint16 else .uint32,
+                if (model.IndexType == u16) .uint16 else .uint32,
                 0,
                 ib_info.size);
             pass.setPipeline(pipeline);
@@ -525,9 +487,9 @@ pub fn draw(state: *State) void {
                 const object_to_world = zm.translationV(zm.loadArr3(drawable.position));
                 const mem = gctx.uniformsAllocate(DrawUniforms,1);
                 mem.slice[0].object_to_world = zm.transpose(object_to_world);
-                mem.slice[0].texture_index = drawable.texture_index;
                 mem.slice[0].basecolor_roughness = drawable.basecolor_roughness;
-                //mem.slice[0].mip_level = state.mip_level;
+                mem.slice[0].mip_level = state.mip_level;
+
                 pass.setBindGroup(1, draw_bind_group, &.{mem.offset});
 
                 //Draw
@@ -565,58 +527,6 @@ pub fn draw(state: *State) void {
     }
 }
 
-pub fn deinit(allocator: std.mem.Allocator, state: *State) void {
-    state.gctx.destroy(allocator);
-    state.meshes.deinit();
-    state.drawables.deinit();
-    allocator.destroy(state);
-    state.* = undefined;
-}
-
-fn createDepthTexture(gctx: *zgpu.GraphicsContext) struct {
-    texture: zgpu.TextureHandle,
-    view: zgpu.TextureViewHandle,
-} {
-    const texture = gctx.createTexture(.{
-        .usage = .{ .render_attachment = true },
-        .dimension = .tdim_2d,
-        .size = .{
-            .width = gctx.swapchain_descriptor.width,
-            .height = gctx.swapchain_descriptor.height,
-            .depth_or_array_layers = 1,
-        },
-        .format = .depth32_float,
-        .mip_level_count = 1,
-        .sample_count = 1,
-    });
-    const view = gctx.createTextureView(texture, .{});
-    return .{ .texture = texture, .view = view };
-}
-pub export fn Force_image_MipMap_compatible(image: *zstbi.Image) void {
-    const square_size = round_pow_2_up(@max(image.width, image.height));
-    image.* = image.*.resize(square_size,square_size);
-}
-pub export fn round_pow_2_down(a:u32) u32 {
-    var x = a;
-    x |= x>>1;
-    x |= x>>2;
-    x |= x>>4;
-    x |= x>>8;
-    x |= x>>16;
-    x = (x>>1) + 1;
-    return x;
-}
-pub export fn round_pow_2_up(a:u32) u32 {
-    var x = a;
-    x -=1;   
-    x |= x>>1;
-    x |= x>>2;
-    x |= x>>4;
-    x |= x>>8;
-    x |= x>>16;
-    x+=1;
-    return x;
-}
 
 pub export fn print_version() void {
     const stdout_file = std.io.getStdOut().writer();

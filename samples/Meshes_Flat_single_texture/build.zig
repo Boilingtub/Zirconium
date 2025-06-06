@@ -43,23 +43,27 @@ pub fn build(b: *std.Build,
     });
     lib.root_module.addImport("zmath", zmath.module("root"));
     
-    //mesh.zig
-    const mesh = b.addModule("mesh", .{
-        .root_source_file = b.path(src_path ++ "mesh.zig")
+    //model.zig
+    const model = b.addModule("model", .{
+        .root_source_file = b.path(src_path ++ "model.zig")
     });
     const zgltf = b.addModule("zgltf", .{
         .root_source_file = b.path("./libs/zgltf/main.zig")
     });
-    mesh.addImport("zgltf", zgltf);
+    model.addImport("zgltf", zgltf);
     const zobj = b.addModule("zobj", .{
         .root_source_file = b.path("./libs/zobj/src/main.zig")
     });
-    mesh.addImport("zobj", zobj);
-    lib.root_module.addImport("mesh", mesh);
+    model.addImport("zobj", zobj);
+    lib.root_module.addImport("model", model);
 
     //image.zig
+    const image = b.addModule("image", .{
+        .root_source_file = b.path(src_path ++ "image.zig")
+    });
     const zstbi = b.dependency("zstbi", .{});
-    lib.root_module.addImport("zstbi", zstbi.module("root"));
+    image.addImport("zstbi", zstbi.module("root"));
+    lib.root_module.addImport("image", image);
     //camera.zig 
     const camera = b.addModule("camera", .{
         .root_source_file = b.path(src_path ++ "camera.zig")

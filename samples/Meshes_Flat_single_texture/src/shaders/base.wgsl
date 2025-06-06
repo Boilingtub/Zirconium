@@ -6,9 +6,8 @@ struct FrameUniforms {
 
 struct DrawUniforms {
   object_to_world: mat4x4<f32>,
-  texture_index: u32,
   basecolor_roughness: vec4<f32>,
-  //mip_level: f32,
+  mip_level: f32,
 }
 @group(1) @binding(0) var<uniform> draw_uniforms: DrawUniforms;
 
@@ -29,26 +28,21 @@ struct VertexOut {
   return output;
 }
 
-@group(1) @binding(1) var texture_array: texture_2d_array<f32>;
-@group(1) @binding(2) var texture_sampler: sampler;
+@group(1) @binding(1) var image: texture_2d<f32>;
+@group(1) @binding(2) var image_sampler: sampler;
 
 @fragment fn fs_main(
   @location(0) texcoords: vec2<f32>,
 ) -> @location(0) vec4<f32> {
   let base_color = draw_uniforms.basecolor_roughness.xyz;
   let roughness = draw_uniforms.basecolor_roughness.a;
-
-  //let clampedLayerIndex = min(
-  //    draw_uniforms.texture_index, u32(textureNumLayers(texture_array))
-  //) - 1;
-
-  let texture = textureSample(
-      texture_array, 
-      texture_sampler, 
-      texcoords, 
-      draw_uniforms.texture_index,
+  let texture = textureSampleLevel(
+                  image, 
+                  image_sampler, 
+                  texcoords,
+                  draw_uniforms.mip_level
   );
-  let fin_color = texture;// * vec4(base_color,1.0);
+  let fin_color = texture * vec4(base_color,1.0);
   return fin_color;
 }
 

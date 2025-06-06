@@ -24,8 +24,11 @@ pub fn main() !void {
     defer window.destroy();
     try window.setInputMode(Zr.Windowing.CURSOR, Zr.Windowing.CURSOR_DISABLED);
      
+
+
     var state = try Zr.init(allocator, window);
     defer Zr.deinit(allocator, state);
+
   
    //state.camera.position = .{3.0,2.0,3.0};
    //state.camera.pitch = -(3.14/4.0);
