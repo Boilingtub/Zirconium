@@ -1,6 +1,6 @@
 const std = @import("std");
     
-const build_script = @import("samples/Meshes_Textured/build.zig");
+const build_script = @import("samples/font_text/build.zig");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});

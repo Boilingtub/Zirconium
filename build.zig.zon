@@ -2,7 +2,7 @@
     .name = .Zirconium,
     .version = "0.0.0",
     .fingerprint = 0xdd90d8756a4c9a1b,
-    .minimum_zig_version = "0.14.0",
+    .minimum_zig_version = "0.14.1",
     .dependencies = .{
         .system_sdk = .{
             .url = "https://github.com/zig-gamedev/system_sdk/archive/c0dbf11cdc17da5904ea8a17eadc54dee26567ec.tar.gz",
