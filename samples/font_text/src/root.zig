@@ -156,15 +156,17 @@ fn initScene(
         const new_text = TextObject.string_to_textobj(
             allocator, 
             font_texture_atlas, 
-            "HELLO_WORLD",
-            .{2.0,2.0},
+            "HELLO_WORLD\nABC",
+            .{0.1,0.1},
         );
         textdrawables.append(.{
             .textobj_index = @as(u32, @intCast(textobjects.items.len)), 
-            .position = .{0.0,0.0,0.0}, 
-            .color = .{1,1,1,1}
+            .position = .{0,0}, 
+            .color = .{1,1,1,1},
+            .scale = 0.01,
         }) catch unreachable;
         textobjects.append(new_text) catch unreachable;
+    
 
     }
 }
@@ -204,10 +206,14 @@ pub fn create_default_state(allocator: std.mem.Allocator,
 
     state.textobjects = textobjects;
     state.textdrawables = textdrawables;
+
     state.meshes = meshes;
     state.drawables = drawables;
     state.camera = Camera {};
-       
+
+    state.text_instance_buffers = try std.ArrayList(zgpu.BufferHandle).initCapacity(
+        allocator, state.textobjects.items.len
+    );
     pipelines.text_pipeline(state,&font_texture_atlas,text_base_shader);
     pipelines.render_pipeline(
         state,

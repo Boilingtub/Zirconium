@@ -89,7 +89,7 @@ pub fn text_pipeline(
             .binding = 0,
             .buffer_handle = gctx.uniforms.buffer,
             .offset = 0,
-            .size = @sizeOf(TextUniform),
+            .size = @sizeOf(TextUniform)+@sizeOf([5]f32),
         },
         .{
             .binding = 1,
@@ -101,23 +101,34 @@ pub fn text_pipeline(
         }
     });
     //INIT text buffers
-    const text_mesh = mesh.text_mesh;
     const vertex_buffer = gctx.createBuffer(.{
         .usage = .{ .copy_dst = true, .vertex = true },
-        .size = text_mesh.vertices.len*@sizeOf(Vertex)
+        .size = text.TextMesh.vertices.len*@sizeOf(text.TextVertex)
     });
     {
         gctx.queue.writeBuffer(
-            gctx.lookupResource(vertex_buffer).?,0,Vertex,text_mesh.vertices);
+            gctx.lookupResource(vertex_buffer).?,
+            0,
+            text.TextVertex, 
+            &text.TextMesh.vertices
+        );
     }
     // Create an index buffer.
     const index_buffer = gctx.createBuffer(.{
         .usage = .{ .copy_dst = true, .index = true },
-        .size = text_mesh.indices.len * @sizeOf(IndexType),
+        .size = text.TextMesh.indices.len * @sizeOf(IndexType),
     });
     gctx.queue.writeBuffer(gctx.lookupResource(index_buffer).?,
-                           0, IndexType, text_mesh.indices );
+                           0, IndexType, &text.TextMesh.indices );
 
+    //Init Instace buffers for all TextObjects
+    for (0..state.textobjects.items.len) |i| {
+        var itb: zgpu.BufferHandle = undefined;
+        gpu.recreateInstanceBuffer(
+            state, &itb, state.textobjects.items[i].charobjs.len, text.CharObject
+        );
+        state.text_instance_buffers.append(itb) catch unreachable;
+    } 
 
     // create text render pipeline 
     const text_pipeline_layout = gctx.createPipelineLayout(&.{
@@ -135,22 +146,34 @@ pub fn text_pipeline(
         }};
 
         const vertex_attributes = [_]zgpu.wgpu.VertexAttribute{
-            .{.format = .float32x3, .offset=0, .shader_location = 0},
+            .{.format = .float32x2, .offset=0, .shader_location = 0},
+        };
+        const instance_attributes = [_]zgpu.wgpu.VertexAttribute{ 
             .{
-                .format = .float32x3, .offset = @offsetOf(Vertex, "normal"),
-                .shader_location = 1
-            },
+                .format = .float32x2,
+                .offset = @offsetOf(text.CharObject, "font_offset"),
+                .shader_location = 10,
+            }, 
             .{
-                .format = .float32x2, .offset = @offsetOf(Vertex, "texcoord"),
-                .shader_location = 2 
+                .format = .float32x2,
+                .offset = @offsetOf(text.CharObject, "pos_offset"),
+                .shader_location = 11,
             },
         };
 
-        const vertex_buffers = [_]zgpu.wgpu.VertexBufferLayout{.{
-            .array_stride = @sizeOf(Vertex),
-            .attribute_count = vertex_attributes.len,
-            .attributes = &vertex_attributes,
-        }};
+        const vertex_buffers = [_]zgpu.wgpu.VertexBufferLayout{
+            .{
+                .array_stride = @sizeOf(text.TextVertex),
+                .attribute_count = vertex_attributes.len,
+                .attributes = &vertex_attributes,
+            },
+            .{
+                .array_stride = @sizeOf(text.CharObject),
+                .step_mode = .instance,
+                .attribute_count = instance_attributes.len,
+                .attributes = &instance_attributes,
+            }, 
+        };
 
         const text_pipeline_descriptor = zgpu.wgpu.RenderPipelineDescriptor{ 
             .vertex = .{
@@ -160,8 +183,8 @@ pub fn text_pipeline(
                 .buffers = &vertex_buffers,
             }, 
             .primitive = .{
-                .front_face = .cw,
-                .cull_mode = .back,
+                .front_face = .ccw,
+                .cull_mode = .none,
                 .topology = .triangle_list,
             }, 
             .depth_stencil = &.{
@@ -183,7 +206,6 @@ pub fn text_pipeline(
         );
         
     };
-
     state.text_pipeline = pipeline;
     state.text_bind_group = text_bind_group;
     state.font_texture_view = font_texture_view;
@@ -367,7 +389,7 @@ pub fn render_pipeline(
                 .buffers = &vertex_buffers,
             }, 
             .primitive = .{
-                .front_face = .cw,
+                .front_face = .ccw,
                 .cull_mode = .none,
                 .topology = .triangle_list,
             }, 

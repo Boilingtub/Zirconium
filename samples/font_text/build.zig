@@ -79,6 +79,7 @@ pub fn build(b: *std.Build,
         .root_source_file = b.path("./libs/TrueType/TrueType.zig"),
     });
     text.addImport("TrueType", TrueType);
+    text.addImport("gpu", gpu);
     gpu.addImport("text", text);
 
 

@@ -1,6 +1,16 @@
+struct Vertex {
+  @location(0) position: vec2<f32>,
+}
+
+struct Instance {
+  @location(10) font_offset: vec2<f32>,
+  @location(11) pos_offset: vec2<f32>,
+}
+
 struct TextUniform {
-  position: vec3<f32>,
+  position: vec2<f32>,
   color: vec4<f32>,
+  scale: f32,
 }
 @group(0) @binding(0) var<uniform> text_uniform: TextUniform;
 
@@ -10,14 +20,14 @@ struct VertexOut {
 }
 
 @vertex fn vs_main(
-  @location(0) position: vec3<f32>,
-  @location(1) normal: vec3<f32>,
-  @location(2) texcoords: vec2<f32>,
+  vertex: Vertex,
+  instance: Instance,
 ) -> VertexOut {
-  var output: VertexOut;
-  output.position_clip = vec4(position,1.0);
-  output.texcoords = texcoords;
-  return output;
+  var out: VertexOut;
+    let pos = vertex.position*0.04 + instance.pos_offset;
+    out.position_clip = vec4(pos, 0.0, 1.0);
+    out.texcoords = instance.font_offset;
+  return out;
 }
 
 @group(0) @binding(1) var font_texture: texture_2d<f32>;
@@ -32,6 +42,7 @@ struct VertexOut {
       texcoords, 
   );
   let fin_color = texture;
+  //let fin_color = vec4(1.0,1.0,1.0,1.0);
   return fin_color;
 }
 

@@ -166,16 +166,6 @@ pub const primitive_plane = Model {
     .indices = &.{0, 3, 2, 0, 2, 1,}
 };
 
-pub const text_mesh = Model {
-    .vertices = &.{
-        .{.position = .{-1, -1, 1}, .normal = .{0.0, 0.0, 0.0}, .texcoord = .{0.0, 1.0}},
-        .{.position = .{ 1, -1, 1}, .normal = .{0.0, 0.0, 0.0}, .texcoord = .{1.0, 1.0}},
-        .{.position = .{ 1,  1,  1}, .normal = .{0.0, 0.0, 0.0}, .texcoord = .{1.0, 0.0}},
-        .{.position = .{-1,  1,  1}, .normal = .{0.0, 0.0, 0.0}, .texcoord = .{0.0, 0.0}}
-    },
-    .indices = &.{0, 3, 2, 0, 2, 1,}
-};
-
 pub const primitive_cube = Model {
     .vertices = &.{
         // Back face (z = -1, normal = (0,0,-1))

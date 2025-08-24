@@ -36,6 +36,7 @@ pub const State = struct {
 
     text_vertex_buffer: zgpu.BufferHandle,
     text_index_buffer: zgpu.BufferHandle,
+    text_instance_buffers: std.ArrayList(zgpu.BufferHandle),
 
     font_texture: zgpu.TextureHandle,
     font_texture_view: zgpu.TextureViewHandle,
@@ -117,7 +118,7 @@ pub const State = struct {
         const commands = commands: {
             const encoder = gctx.device.createCommandEncoder(null);
             defer encoder.release();
-    
+
             pass: {
                 const vb_info = gctx.lookupResourceInfo(state.vertex_buffer)
                     orelse break :pass;
@@ -171,7 +172,9 @@ pub const State = struct {
                 }
                 for (state.drawables.items) |drawable| {
                     //Update "object to world" xform 
-                    const object_to_world = zm.translationV(zm.loadArr3(drawable.position)               );
+                    const object_to_world = zm.translationV(
+                        zm.loadArr3(drawable.position)               
+                    );
                     const mem = gctx.uniformsAllocate(DrawUniforms,1);
                     mem.slice[0].object_to_world = zm.transpose(object_to_world);
                     mem.slice[0].texture_index = drawable.texture_index;
@@ -205,6 +208,7 @@ pub const State = struct {
                     orelse break :pass;
                 const text_bind_group = gctx.lookupResource(state.text_bind_group)
                     orelse break :pass;
+
                 
                 pass.setVertexBuffer(0, text_vb_info.gpuobj.?, 0, text_vb_info.size);
                 pass.setIndexBuffer(
@@ -216,15 +220,34 @@ pub const State = struct {
                 pass.setPipeline(text_pipeline);
 
                 for (state.textdrawables.items) |td| {
+                    //get text_instance_buffer information
+                    const text_itb_info = gctx.lookupResourceInfo(
+                        state.text_instance_buffers.items[td.textobj_index])
+                        orelse break :pass;
+                    //Write textobject.charobjs into text_instance_buffer[index]
+                    gctx.queue.writeBuffer(
+                        gctx.lookupResource(
+                            state.text_instance_buffers.items[td.textobj_index]
+                        ).?,
+                        0,  text.CharObject,
+                        state.textobjects.items[td.textobj_index].charobjs, 
+                    );
+                    //set vertexBuffer(1) = text_itb_info so size is known
+                    pass.setVertexBuffer(1, text_itb_info.gpuobj.?, 0,
+                        text_itb_info.size
+                    );
+
                     const mem = gctx.uniformsAllocate(TextUniform,1);
                     mem.slice[0].position = td.position;
                     mem.slice[0].color = td.color;
+                    mem.slice[0].scale = td.scale;
                     //mem.slice[0].mip_level = state.mip_level;
                     pass.setBindGroup(0, text_bind_group, &.{mem.offset});
                     //Draw
                     pass.drawIndexed(
-                        mesh.primitive_plane.indices.len,
-                        @intCast(state.textobjects.items[td.textobj_index].charobjs.len),
+                        text.TextMesh.indices.len,
+                        @intCast(state.textobjects.items[td.textobj_index]
+                            .charobjs.len),
                         0,
                         0,
                         0,
@@ -258,7 +281,9 @@ pub const State = struct {
         }
         state.textobjects.deinit();
         state.textdrawables.deinit();
+        state.text_instance_buffers.deinit();
         allocator.destroy(state);
+        
         //state.* = undefined;
     }
 };
@@ -283,5 +308,21 @@ pub fn createDepthTexture(gctx: *zgpu.GraphicsContext) struct {
     return .{ .texture = texture, .view = view };
 }
 
+pub fn recreateInstanceBuffer(
+    state: *State,
+    itb: *zgpu.BufferHandle,
+    instances: usize,
+    T: type) void {
+    const gctx = state.gctx;
+    gctx.destroyResource(itb.*);
+    const instance_buffer = gctx.createBuffer(.{
+        .usage = .{ .copy_dst = true, .vertex = true },
+        .size = ensureFourByteMultiple(instances * @sizeOf(T)),
+    });
+    itb.* = instance_buffer;
+}
 
+fn ensureFourByteMultiple(size: usize) usize {
+    return (size + 3) & ~@as(usize, 3);
+}
 
