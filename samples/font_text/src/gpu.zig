@@ -232,15 +232,15 @@ pub const State = struct {
                         0,  text.CharObject,
                         state.textobjects.items[td.textobj_index].charobjs, 
                     );
-                    //set vertexBuffer(1) = text_itb_info so size is known
+
                     pass.setVertexBuffer(1, text_itb_info.gpuobj.?, 0,
                         text_itb_info.size
                     );
 
                     const mem = gctx.uniformsAllocate(TextUniform,1);
                     mem.slice[0].position = td.position;
-                    mem.slice[0].color = td.color;
                     mem.slice[0].scale = td.scale;
+                    mem.slice[0].color = td.color;
                     //mem.slice[0].mip_level = state.mip_level;
                     pass.setBindGroup(0, text_bind_group, &.{mem.offset});
                     //Draw

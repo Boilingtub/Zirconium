@@ -1,3 +1,4 @@
+const do_checks = true;
 const version = "0.0.7";
 const gpu = @import("gpu");
 const std = gpu.std;
@@ -22,7 +23,10 @@ pub const pipelines = @import("pipelines.zig");
 
 const base_shader = @embedFile("./shaders/base.wgsl");
 const text_base_shader = @embedFile("./shaders/text.wgsl");
-const default_font = @embedFile("./ttf/Roboto-Medium.ttf");
+const ttf_default_font = @embedFile("./embed/ttf/GoNotoCurrent-Regular.ttf");
+const png_default_font = @embedFile("./embed/png/Roboto-Medium.png");
+
+
 
 fn initScene(
     allocator: std.mem.Allocator,
@@ -156,14 +160,15 @@ fn initScene(
         const new_text = TextObject.string_to_textobj(
             allocator, 
             font_texture_atlas, 
-            "HELLO_WORLD\nABC",
-            .{0.1,0.1},
+            //" !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~",
+            "Zirconium:font_text V-0.0.7",
+            .{0.062,0.062},
         );
         textdrawables.append(.{
             .textobj_index = @as(u32, @intCast(textobjects.items.len)), 
-            .position = .{0,0}, 
-            .color = .{1,1,1,1},
-            .scale = 0.01,
+            .position = .{-1,0.97}, 
+            .scale = .{0.03,0.03},
+            .color = .{1,1,1,1}
         }) catch unreachable;
         textobjects.append(new_text) catch unreachable;
     
@@ -187,10 +192,10 @@ pub fn create_default_state(allocator: std.mem.Allocator,
     var meshes = std.ArrayList(Mesh).init(allocator);
     var drawables = std.ArrayList(Drawable).init(allocator);
     
-    const font_chars = comptime IntArrayFromTo(33, 126);
+    const font_chars = comptime IntArrayFromTo(32, 127);
     //remember: font texture atlas allocated with arena will clear at end of init 
-    const font_texture_atlas = try FontTextureAtlas.init(
-       arena, default_font, &font_chars
+    const font_texture_atlas = try FontTextureAtlas.from_png(
+        allocator, png_default_font, &font_chars
     );
     
     var images = std.ArrayList(Image).init(arena);
@@ -223,6 +228,12 @@ pub fn create_default_state(allocator: std.mem.Allocator,
         base_shader,
     );
     pipelines.create_commands(allocator,state);
+    
+    if(do_checks == true) {
+        for (state.textobjects.items) |to| {
+            to.print();
+        }
+    } 
 
     return state;
 }

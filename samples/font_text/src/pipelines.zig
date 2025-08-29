@@ -42,23 +42,26 @@ pub fn text_pipeline(
     ) void {
     const gctx = state.gctx;
     const sampler = state.sampler;
+    const fta = font_texture_atlas;
 
     //INIT Text Render bindgroups
+    //font_texture_atlas.write_to_png("font.debug") catch unreachable;
+
     const font_texture = gctx.createTexture(.{
        .usage = .{ .texture_binding = true, .copy_dst = true},
        .size = .{
-           .width = font_texture_atlas.width,
-           .height = font_texture_atlas.height,
+           .width = fta.bmp.width,
+           .height = fta.bmp.height,
            .depth_or_array_layers = 1,
        },
        .format = zgpu.imageInfoToTextureFormat(
-           font_texture_atlas.num_components,
-           font_texture_atlas.bytes_per_component,
-           false, 
+           fta.bmp.num_components,
+           fta.bmp.bytes_per_component,
+        false, 
        ),
        .mip_level_count = std.math.log2_int(
            u32, 
-           @max(font_texture_atlas.width, font_texture_atlas.height)) + 1
+           @max(fta.bmp.width, fta.bmp.height)) + 1
    });
    const font_texture_view = gctx.createTextureView(font_texture,.{});
    gctx.queue.writeTexture(
@@ -66,15 +69,15 @@ pub fn text_pipeline(
            .texture = gctx.lookupResource(font_texture).?
        }, 
        .{ 
-           .bytes_per_row = font_texture_atlas.bytes_per_row(),
-           .rows_per_image = font_texture_atlas.height, 
+           .bytes_per_row = fta.bmp.bytes_per_row,
+           .rows_per_image = fta.bmp.height, 
        }, 
        .{ 
-           .width = font_texture_atlas.width,
-           .height = font_texture_atlas.height
+           .width = fta.bmp.width,
+           .height = fta.bmp.height
        },
        u8,
-       font_texture_atlas.data,
+       fta.bmp.data,
    );
    
     const text_bind_group_layout = gctx.createBindGroupLayout(&.{
@@ -89,7 +92,7 @@ pub fn text_pipeline(
             .binding = 0,
             .buffer_handle = gctx.uniforms.buffer,
             .offset = 0,
-            .size = @sizeOf(TextUniform)+@sizeOf([5]f32),
+            .size = @sizeOf(TextUniform),
         },
         .{
             .binding = 1,
@@ -146,11 +149,13 @@ pub fn text_pipeline(
         }};
 
         const vertex_attributes = [_]zgpu.wgpu.VertexAttribute{
-            .{.format = .float32x2, .offset=0, .shader_location = 0},
+            .{
+                .format = .float32x2, .offset=0, .shader_location = 0,
+            },
         };
         const instance_attributes = [_]zgpu.wgpu.VertexAttribute{ 
             .{
-                .format = .float32x2,
+                .format = .float32x4,
                 .offset = @offsetOf(text.CharObject, "font_offset"),
                 .shader_location = 10,
             }, 

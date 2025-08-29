@@ -26,39 +26,38 @@ pub fn main() !void {
      
     var state = try Zr.create_default_state(allocator, window);
     defer state.deinit(allocator);
-  
-   //state.camera.position = .{3.0,2.0,3.0};
-   //state.camera.pitch = -(3.14/4.0);
-   //state.camera.yaw = -(3.14/2.0);
 
-   while (!window.shouldClose() and window.getKey(.escape) != .press) {
-       Zr.Windowing.pollEvents();
-       const delta_time = (state.gctx.stats.delta_time);
+    //state.camera.position = .{3.0,2.0,3.0};
+    //state.camera.pitch = -(3.14/4.0);
+    //state.camera.yaw = -(3.14/2.0);
 
-       const cursor_pos = window.getCursorPos();
-       state.camera.mouse_rotate(
-           .{@floatCast(cursor_pos[0]),@floatCast(cursor_pos[1])});
+    while (!window.shouldClose() and window.getKey(.escape) != .press) {
+        Zr.Windowing.pollEvents();
+        const delta_time = (state.gctx.stats.delta_time);
+        
+        const cursor_pos = window.getCursorPos();
+        state.camera.mouse_rotate(
+            .{@floatCast(cursor_pos[0]),@floatCast(cursor_pos[1])});
 
-       if(window.getKey(.w) == .press) {
-           state.camera.translate( .{1,0,0} , delta_time);
-       }
-       if(window.getKey(.s) == .press) {
+        if(window.getKey(.w) == .press) {
+            state.camera.translate( .{1,0,0} , delta_time);
+        }
+        if(window.getKey(.s) == .press) {
            state.camera.translate( .{-1,0,0} , delta_time);
-       }
+        }
        if(window.getKey(.d) == .press) {
-           state.camera.translate( .{0,1,0} , delta_time);
-       }
-       if(window.getKey(.a) == .press) {
-           state.camera.translate( .{0,-1,0} , delta_time);
-       }
-       if(window.getKey(.space) == .press) {
-           state.camera.translate( .{0,0,1} , delta_time);
-       }
-       if(window.getKey(.left_shift) == .press) {
-           state.camera.translate( .{0,0,-1} , delta_time);
-       }
-
-       state.draw_render();
+            state.camera.translate( .{0,1,0} , delta_time);
+        }
+        if(window.getKey(.a) == .press) {
+            state.camera.translate( .{0,-1,0} , delta_time);
+        }
+        if(window.getKey(.space) == .press) {
+            state.camera.translate( .{0,0,1} , delta_time);
+        }
+        if(window.getKey(.left_shift) == .press) {
+            state.camera.translate( .{0,0,-1} , delta_time);
+        }
+        state.draw_render();
    }
 }
 
