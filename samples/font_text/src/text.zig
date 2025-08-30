@@ -13,7 +13,8 @@ pub fn IntArrayFromTo(l:comptime_int,h:comptime_int) [h-l]u8 {
 pub const TextUniform = struct {
     color: [4]f32,
     position: [2]f32,   
-    scale: [2]f32,
+    scale: f32,
+    aspect_ratio: f32 = 1.0,
 };
 
 pub const CharObject = struct {
@@ -22,9 +23,9 @@ pub const CharObject = struct {
 };
 
 pub const TextDrawable = struct {
-    scale: [2]f32,
-    position: [2]f32,
     color: [4]f32,
+    position: [2]f32,
+    scale: f32,
     textobj_index: u32,
 };
 
@@ -96,7 +97,7 @@ pub const FontTextureAtlas = struct {
     lowest_value: u8,
     width_glyph_count: u32,
     offset: OffsetMap,
-    pub fn from_png(allocator: std.mem.Allocator, font_bmp: *const gpu.zstbi.Image,
+    pub fn from_bmp(allocator: std.mem.Allocator, font_bmp: *const gpu.zstbi.Image,
         font_chars: []const u8, width_glyph_count: u32) !FontTextureAtlas {
         //std.debug.print("{c}", .{font_chars}); //Print chars to screen
         var font_texture_atlas: FontTextureAtlas = .{
@@ -152,6 +153,10 @@ pub const FontTextureAtlas = struct {
         //self.bmp.deinit(); 
     }
 };
+
+//pub fn ttf_to_bmp() {
+//
+//}
 
 pub const TextVertex = [2]f32;
 const TextModel = struct {

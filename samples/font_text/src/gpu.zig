@@ -85,8 +85,9 @@ pub const State = struct {
             }, .{});
             errdefer gctx.destroy(allocator);
             const sampler = gctx.createSampler(.{});
-
             gctx.swapchain_descriptor.present_mode = .immediate;  
+            gctx.swapchain_descriptor.format = .bgra8_unorm;
+        
             
             const state = try allocator.create(State);
             state.gctx = gctx;
@@ -111,9 +112,9 @@ pub const State = struct {
             @as(f32, @floatFromInt(fb_height)), 0.01, 100.0
         );
         const cam_world_to_clip = zm.mul(cam_world_to_view, cam_view_to_clip);
-        //const aspect_ratio = @as(
-        //    f32, @floatFromInt(fb_width)) / @as(f32, @floatFromInt(fb_height)
-        //);
+        const aspect_ratio = @as(
+            f32, @floatFromInt(fb_width)) / @as(f32, @floatFromInt(fb_height)
+        );
     
         const back_buffer_view = gctx.swapchain.getCurrentTextureView();
         defer back_buffer_view.release();
@@ -252,9 +253,10 @@ pub const State = struct {
                     );
 
                     const mem = gctx.uniformsAllocate(TextUniform,1);
+                    mem.slice[0].color = td.color;
                     mem.slice[0].position = td.position;
                     mem.slice[0].scale = td.scale;
-                    mem.slice[0].color = td.color;
+                    mem.slice[0].aspect_ratio = aspect_ratio;
                     //mem.slice[0].mip_level = state.mip_level;
                     pass.setBindGroup(0, text_bind_group, &.{mem.offset});
                     //Draw
@@ -351,7 +353,7 @@ pub fn ensureInstanceBufferCapacity(
     const new_size = @max(req_size, cur_size*2);
     const new_buf = state.gctx.createBuffer(.{
         .usage = .{ .copy_dst = true, .vertex = true },
-        .size = ensureFourByteMultiple(new_size),
+        .size = ensureFourByteMultiple(new_size),       
     });
     state.gctx.destroyResource(itb.*);
     itb.* = new_buf;

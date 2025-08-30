@@ -23,7 +23,7 @@ pub const pipelines = @import("pipelines.zig");
 const base_shader = @embedFile("./shaders/base.wgsl");
 const text_base_shader = @embedFile("./shaders/text.wgsl");
 const ttf_default_font = @embedFile("./embed/ttf/GoNotoCurrent-Regular.ttf");
-const png_default_font = @embedFile("./embed/png/Roboto-Medium.png");
+const png_default_font = @embedFile("./embed/png/Roboto-Medium-50.png");
 
 
 
@@ -165,7 +165,7 @@ fn initScene(
             unreachable;
         font_bmps.append(font_bmp) catch unreachable;
 
-        const font_texture_atlas = FontTextureAtlas.from_png(
+        const font_texture_atlas = FontTextureAtlas.from_bmp(
             allocator, &font_bmp, &font_chars, 19,
         ) catch unreachable;
         
@@ -178,12 +178,12 @@ fn initScene(
             &font_atlas_list.items[0], 
             //" !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~",
             "Zirconium:font_text:" ++ version,
-            .{0.061,0.061},
+            .{0.025,0.025},
         );
         textdrawables.append(.{
             .textobj_index = @as(u32, @intCast(textobjects.items.len)), 
             .position = .{-1,0.97}, 
-            .scale = .{0.03,0.03},
+            .scale = 0.0151,
             .color = .{1,1,1,1}
         }) catch unreachable;
         textobjects.append(new_text) catch unreachable;
@@ -194,13 +194,13 @@ fn initScene(
             allocator, 
             &font_atlas_list.items[0], 
             "fps:000",
-            .{0.061,0.061},
+            .{0.025,0.025},
         );
         textdrawables.append(.{
             .textobj_index = @as(u32, @intCast(textobjects.items.len)), 
             .position = .{-1,0.91}, 
-            .scale = .{0.03,0.03},
-            .color = .{1,1,1,1}
+            .scale = 0.0151,
+            .color = .{1,1,1,1},
         }) catch unreachable;
         textobjects.append(new_text) catch unreachable;
     

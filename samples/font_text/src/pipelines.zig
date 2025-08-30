@@ -59,9 +59,9 @@ pub fn text_pipeline(
            fta.bmp.bytes_per_component,
         false, 
        ),
-       .mip_level_count = std.math.log2_int(
-           u32, 
-           @max(fta.bmp.width, fta.bmp.height)) + 1
+       //.mip_level_count = std.math.log2_int(
+       //    u32, 
+       //    @max(fta.bmp.width, fta.bmp.height)) + 1
    });
    const font_texture_view = gctx.createTextureView(font_texture,.{});
    gctx.queue.writeTexture(
@@ -147,6 +147,7 @@ pub fn text_pipeline(
         const color_targets = [_]zgpu.wgpu.ColorTargetState{.{
             .format = zgpu.GraphicsContext.swapchain_format,
         }};
+    
 
         const vertex_attributes = [_]zgpu.wgpu.VertexAttribute{
             .{
