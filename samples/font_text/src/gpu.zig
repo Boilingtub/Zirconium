@@ -42,6 +42,7 @@ pub const State = struct {
     font_texture_view: zgpu.TextureViewHandle,
 
     textobjects: std.ArrayList(TextObject),
+    font_atlas_list: std.ArrayList(FontTextureAtlas),
     textdrawables: std.ArrayList(TextDrawable),
 
     //World render pipeline and dependencies.
@@ -84,6 +85,8 @@ pub const State = struct {
             }, .{});
             errdefer gctx.destroy(allocator);
             const sampler = gctx.createSampler(.{});
+
+            gctx.swapchain_descriptor.present_mode = .immediate;  
             
             const state = try allocator.create(State);
             state.gctx = gctx;
@@ -221,15 +224,26 @@ pub const State = struct {
 
                 for (state.textdrawables.items) |td| {
                     //get text_instance_buffer information
-                    const text_itb_info = gctx.lookupResourceInfo(
+                    var text_itb_info = gctx.lookupResourceInfo(
                         state.text_instance_buffers.items[td.textobj_index])
                         orelse break :pass;
-                    //Write textobject.charobjs into text_instance_buffer[index]
+
+                    const changed = 
+                    ensureInstanceBufferCapacity(
+                        state,
+                        &state.text_instance_buffers.items[td.textobj_index],
+                        text_itb_info.size,
+                        state.textobjects.items[td.textobj_index].charobjs.len,
+                        text.CharObject
+                    );
+                    if(changed) { 
+                        text_itb_info = gctx.lookupResourceInfo(
+                            state.text_instance_buffers.items[td.textobj_index])
+                            orelse break :pass;
+                    }
+
                     gctx.queue.writeBuffer(
-                        gctx.lookupResource(
-                            state.text_instance_buffers.items[td.textobj_index]
-                        ).?,
-                        0,  text.CharObject,
+                        text_itb_info.gpuobj.?, 0,  text.CharObject,
                         state.textobjects.items[td.textobj_index].charobjs, 
                     );
 
@@ -282,9 +296,11 @@ pub const State = struct {
         state.textobjects.deinit();
         state.textdrawables.deinit();
         state.text_instance_buffers.deinit();
+        for(state.font_atlas_list.items) |t| {
+            t.deinit(allocator);
+        }
+        state.font_atlas_list.deinit();
         allocator.destroy(state);
-        
-        //state.* = undefined;
     }
 };
 
@@ -313,6 +329,7 @@ pub fn recreateInstanceBuffer(
     itb: *zgpu.BufferHandle,
     instances: usize,
     T: type) void {
+
     const gctx = state.gctx;
     gctx.destroyResource(itb.*);
     const instance_buffer = gctx.createBuffer(.{
@@ -320,6 +337,25 @@ pub fn recreateInstanceBuffer(
         .size = ensureFourByteMultiple(instances * @sizeOf(T)),
     });
     itb.* = instance_buffer;
+}
+
+pub fn ensureInstanceBufferCapacity(
+    state: *State,
+    itb: *zgpu.BufferHandle,
+    cur_size: usize,
+    req_instance_count: usize,
+    T: type,
+) bool {
+    const req_size = req_instance_count * @sizeOf(T);
+    if(req_size <= cur_size) return false;
+    const new_size = @max(req_size, cur_size*2);
+    const new_buf = state.gctx.createBuffer(.{
+        .usage = .{ .copy_dst = true, .vertex = true },
+        .size = ensureFourByteMultiple(new_size),
+    });
+    state.gctx.destroyResource(itb.*);
+    itb.* = new_buf;
+    return true;
 }
 
 fn ensureFourByteMultiple(size: usize) usize {

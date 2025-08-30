@@ -73,7 +73,6 @@ pub const TextObject = struct {
     }
     pub fn deinit(self:*const TextObject,allocator:std.mem.Allocator) void {
         allocator.free(self.charobjs);
-        //self.font_texture_atlas.deinit(allocator);
     }
 };
 
@@ -97,18 +96,17 @@ pub const FontTextureAtlas = struct {
     lowest_value: u8,
     width_glyph_count: u32,
     offset: OffsetMap,
-    pub fn from_png(allocator: std.mem.Allocator, font_data: []const u8,
-        font_chars: []const u8) !FontTextureAtlas {
+    pub fn from_png(allocator: std.mem.Allocator, font_bmp: *const gpu.zstbi.Image,
+        font_chars: []const u8, width_glyph_count: u32) !FontTextureAtlas {
         //std.debug.print("{c}", .{font_chars}); //Print chars to screen
         var font_texture_atlas: FontTextureAtlas = .{
-            .bmp = try gpu.zstbi.Image.loadFromMemory(font_data, 1),
+            .bmp = font_bmp.*,
             .lowest_value = font_chars[0],
-            .width_glyph_count = 19,
+            .width_glyph_count = width_glyph_count,
             .offset = undefined,
         };
         std.debug.assert(font_texture_atlas.bmp.bytes_per_component > 0);
 
-        const width_glyph_count = 19;//HARD coded will change with different fonts
         const glyph_offset_x: f32 = 
             1 / @as(f32,@floatFromInt(width_glyph_count));
 
@@ -125,68 +123,11 @@ pub const FontTextureAtlas = struct {
         }
         return font_texture_atlas;
     }
-
-//    pub fn from_ttf(allocator: std.mem.Allocator, font: []const u8, //OUTDATED BROKEN
-//       comptime font_chars:[]const u8,) !FontTextureAtlas 
-//   {
-//       std.debug.panic("\n[PANIC!]\nFontTextureAtlas.from_ttf() currently broken !\n\n", .{});
-//       const font_height = 20;
-//       var font_texture_atlas: FontTextureAtlas = .{
-//           .width = 0,
-//           .height = 0,
-//           .num_components = 1,
-//           .lowest_value = font_chars[0],
-//           .bytes_per_component = 1,
-//           .offset = try allocator.alloc(BMP_Offset, font_chars.len),
-//           .data = undefined,
-//       };
-//       const ttf = try TrueType.load(font);
-//       const scale = ttf.scaleForPixelHeight(font_height);
-//       var glyph_buffer : std.ArrayListUnmanaged(u8) = .empty;
-//       var raw_data_buffer = std.ArrayList(u8).init(allocator);
-//       var cp_count: u32 = 0;
-//
-//       var iter = std.unicode.Utf8View.initComptime(font_chars).iterator();
-//       while(iter.nextCodepoint()) |codepoint| {
-//           if (ttf.codepointGlyphIndex(codepoint)) |glyph| {
-//
-//               glyph_buffer.clearRetainingCapacity();
-//               const dims = try ttf.glyphBitmap(
-//                   allocator,
-//                   &glyph_buffer, 
-//                   glyph,
-//                   scale,
-//                   scale,
-//               );
-//               if(dims.height < font_height){
-//                   while(glyph_buffer.items.len < dims.width*font_height) {
-//                       try glyph_buffer.append(allocator, 0);
-//                   }
-//               }
-//               std.debug.print("\n", .{});
-//               for(0..glyph_buffer.items.len) |i| {
-//                   std.debug.print("{d}|", .{glyph_buffer.items[i]});
-//                   if(i % dims.width == 0) {
-//                       std.debug.print("\n", .{});
-//                   }
-//               }
-//               try raw_data_buffer.appendSlice(glyph_buffer.items);
-//               font_texture_atlas.offset[cp_count].x = 
-//                   @intCast(font_texture_atlas.width);
-//               font_texture_atlas.offset[cp_count].y = @intCast(dims.height);
-//               font_texture_atlas.width += dims.width;
-//               font_texture_atlas.height = @max(font_texture_atlas.height, dims.height);
-//           }
-//           cp_count += 1;
-//       }
-//       font_texture_atlas.data = raw_data_buffer.items;
-//       return font_texture_atlas;
-//   }                                                                                                                                     
-    pub fn get_offset_of(self:FontTextureAtlas, c:u8) [4]f32 {
+                                                                                                                 
+    pub fn get_offset_of(self:*const FontTextureAtlas, c:u8) [4]f32 {
         const off_idx = c-self.lowest_value;
-        const width_glyph_count = self.width_glyph_count;
-        const x_off = off_idx % width_glyph_count;
-        const y_off = off_idx / (width_glyph_count);
+        const x_off = off_idx % self.width_glyph_count;
+        const y_off = off_idx / (self.width_glyph_count);
         return .{
             self.offset.x[x_off],
             self.offset.x[x_off+1],
@@ -196,12 +137,9 @@ pub const FontTextureAtlas = struct {
     }
     pub fn debug_print(self:FontTextureAtlas) void {
         std.debug.print(
-            "width:{d}\nheight:{d}\nnum_components:{d}\nbytes_per_component:{d}\n", .{
-            self.width,self.height,self.num_components,self.bytes_per_component,
+            "width_glyph_count:{d}\nlowest_value:{d}\noffset_map:{?}\ndata_size:{d}\n",.{
+            self.width_glyph_count,self.lowest_value,self.offset,self.bmp.data.len,
         });
-        std.debug.print(
-            "data len:{d} bytes\noffset:\n{d}\n", .{self.data.len, self.offset.len}
-        );
     }
 
     pub fn write_to_png(self:FontTextureAtlas, 
@@ -211,7 +149,7 @@ pub const FontTextureAtlas = struct {
 
     pub fn deinit(self:FontTextureAtlas, allocator: std.mem.Allocator) void {
         self.offset.deinit(allocator);
-        allocator.free(self.bmp.data);
+        //self.bmp.deinit(); 
     }
 };
 
@@ -223,10 +161,10 @@ const TextModel = struct {
 
 pub const TextMesh: TextModel = .{
     .vertices = .{
-        .{ 1, 1,}, // (1)o----o(0)
-        .{-1, 1,}, //    |    |
-        .{-1,-1,}, //    |    |
-        .{ 1,-1,}, // (2)o----o(3)
+        .{ -1, 1,}, // (0)o----o(2)
+        .{-1, -1,}, //    |    |
+        .{ 1, 1,},  //    |    |
+        .{ 1,-1,},  // (1)o----o(3)
     },
-    .indices = .{0, 2, 3, 0, 1, 2,}
+    .indices = .{0, 1, 2, 2, 1, 3,}
 };

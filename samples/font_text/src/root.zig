@@ -1,4 +1,3 @@
-const do_checks = true;
 const version = "0.0.7";
 const gpu = @import("gpu");
 const std = gpu.std;
@@ -30,7 +29,8 @@ const png_default_font = @embedFile("./embed/png/Roboto-Medium.png");
 
 fn initScene(
     allocator: std.mem.Allocator,
-    font_texture_atlas: *const FontTextureAtlas,
+    font_atlas_list: *std.ArrayList(FontTextureAtlas),
+    font_bmps: *std.ArrayList(Image),
     textobjects: *std.ArrayList(TextObject),
     textdrawables: *std.ArrayList(TextDrawable),
     drawables: *std.ArrayList(Drawable),
@@ -42,6 +42,8 @@ fn initScene(
     var arena_state = std.heap.ArenaAllocator.init(allocator);
     defer arena_state.deinit();
     const arena = arena_state.allocator();
+
+
 
     {
         const new_mesh = mesh.primitive_cube;
@@ -156,17 +158,47 @@ fn initScene(
             meshes_vertices,
         );
     }
+
+    {
+        const font_chars = comptime IntArrayFromTo(32, 127);
+        const font_bmp = zstbi.Image.loadFromMemory(png_default_font, 1) catch
+            unreachable;
+        font_bmps.append(font_bmp) catch unreachable;
+
+        const font_texture_atlas = FontTextureAtlas.from_png(
+            allocator, &font_bmp, &font_chars, 19,
+        ) catch unreachable;
+        
+        font_atlas_list.append(font_texture_atlas) catch unreachable;
+    }
+
     {
         const new_text = TextObject.string_to_textobj(
             allocator, 
-            font_texture_atlas, 
+            &font_atlas_list.items[0], 
             //" !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~",
-            "Zirconium:font_text V-0.0.7",
-            .{0.062,0.062},
+            "Zirconium:font_text:" ++ version,
+            .{0.061,0.061},
         );
         textdrawables.append(.{
             .textobj_index = @as(u32, @intCast(textobjects.items.len)), 
             .position = .{-1,0.97}, 
+            .scale = .{0.03,0.03},
+            .color = .{1,1,1,1}
+        }) catch unreachable;
+        textobjects.append(new_text) catch unreachable;
+    }
+
+    {
+        const new_text = TextObject.string_to_textobj(
+            allocator, 
+            &font_atlas_list.items[0], 
+            "fps:000",
+            .{0.061,0.061},
+        );
+        textdrawables.append(.{
+            .textobj_index = @as(u32, @intCast(textobjects.items.len)), 
+            .position = .{-1,0.91}, 
             .scale = .{0.03,0.03},
             .color = .{1,1,1,1}
         }) catch unreachable;
@@ -191,24 +223,24 @@ pub fn create_default_state(allocator: std.mem.Allocator,
     var textdrawables = std.ArrayList(TextDrawable).init(allocator);
     var meshes = std.ArrayList(Mesh).init(allocator);
     var drawables = std.ArrayList(Drawable).init(allocator);
-    
-    const font_chars = comptime IntArrayFromTo(32, 127);
+    var font_atlas_list = std.ArrayList(FontTextureAtlas).init(allocator);
+
     //remember: font texture atlas allocated with arena will clear at end of init 
-    const font_texture_atlas = try FontTextureAtlas.from_png(
-        allocator, png_default_font, &font_chars
-    );
-    
+
+
     var images = std.ArrayList(Image).init(arena);
+    var font_bmps = std.ArrayList(Image).init(arena);
     var meshes_indices = std.ArrayList(IndexType).init(arena);
     var meshes_vertices = std.ArrayList(Vertex).init(arena);
     
     initScene(
         allocator,
-        &font_texture_atlas,&textobjects, &textdrawables,
+        &font_atlas_list,&font_bmps,&textobjects, &textdrawables,
         &drawables, &meshes, &images,
         &meshes_indices, &meshes_vertices,
     );
 
+    state.font_atlas_list = font_atlas_list;
     state.textobjects = textobjects;
     state.textdrawables = textdrawables;
 
@@ -219,7 +251,7 @@ pub fn create_default_state(allocator: std.mem.Allocator,
     state.text_instance_buffers = try std.ArrayList(zgpu.BufferHandle).initCapacity(
         allocator, state.textobjects.items.len
     );
-    pipelines.text_pipeline(state,&font_texture_atlas,text_base_shader);
+    pipelines.text_pipeline(state,0,text_base_shader);//Only Taking font_atlas_list[0]
     pipelines.render_pipeline(
         state,
         meshes_vertices.items,
@@ -228,13 +260,7 @@ pub fn create_default_state(allocator: std.mem.Allocator,
         base_shader,
     );
     pipelines.create_commands(allocator,state);
-    
-    if(do_checks == true) {
-        for (state.textobjects.items) |to| {
-            to.print();
-        }
-    } 
-
+                
     return state;
 }
 

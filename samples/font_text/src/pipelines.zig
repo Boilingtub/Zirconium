@@ -37,12 +37,12 @@ pub fn create_commands(allocator: std.mem.Allocator,
 
 pub fn text_pipeline(
     state: *State,
-    font_texture_atlas: *const FontTextureAtlas,
+    font_atlas_idx: u32, //Temporary FIx
     text_shader: [*:0]const u8,
     ) void {
     const gctx = state.gctx;
     const sampler = state.sampler;
-    const fta = font_texture_atlas;
+    const fta = state.font_atlas_list.items[font_atlas_idx];
 
     //INIT Text Render bindgroups
     //font_texture_atlas.write_to_png("font.debug") catch unreachable;
@@ -189,7 +189,7 @@ pub fn text_pipeline(
             }, 
             .primitive = .{
                 .front_face = .ccw,
-                .cull_mode = .none,
+                .cull_mode = .back,
                 .topology = .triangle_list,
             }, 
             .depth_stencil = &.{
@@ -395,7 +395,7 @@ pub fn render_pipeline(
             }, 
             .primitive = .{
                 .front_face = .ccw,
-                .cull_mode = .none,
+                .cull_mode = .back,
                 .topology = .triangle_list,
             }, 
             .depth_stencil = &.{

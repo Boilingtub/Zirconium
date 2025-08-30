@@ -34,7 +34,11 @@ pub fn main() !void {
     while (!window.shouldClose() and window.getKey(.escape) != .press) {
         Zr.Windowing.pollEvents();
         const delta_time = (state.gctx.stats.delta_time);
-        
+        const fps = try std.fmt.allocPrint(allocator, "fps:{d}", .{@floor(1/delta_time)});
+        defer allocator.free(fps);
+        state.textobjects.items[1].change_string(allocator, fps);
+
+                                            
         const cursor_pos = window.getCursorPos();
         state.camera.mouse_rotate(
             .{@floatCast(cursor_pos[0]),@floatCast(cursor_pos[1])});
@@ -58,6 +62,7 @@ pub fn main() !void {
             state.camera.translate( .{0,0,-1} , delta_time);
         }
         state.draw_render();
+
    }
 }
 

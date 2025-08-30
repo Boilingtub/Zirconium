@@ -35,13 +35,13 @@ struct VertexOut {
     let uvy = vec2(instance.font_offset.zw);
     switch vertex.idx {
       case 0, default: {
-        out.texcoords = vec2(uvx[1],uvy[0]);
+        out.texcoords = vec2(uvx[0],uvy[0]);
       }
       case 1: {
-        out.texcoords = vec2(uvx[0], uvy[0]);
+        out.texcoords = vec2(uvx[0], uvy[1]);
       }
       case 2: {
-        out.texcoords = vec2(uvx[0], uvy[1]);
+        out.texcoords = vec2(uvx[1], uvy[0]);
       }
       case 3: {
         out.texcoords = vec2(uvx[1], uvy[1]);
