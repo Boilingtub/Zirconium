@@ -22,15 +22,11 @@ pub const pipelines = @import("pipelines.zig");
 
 const base_shader = @embedFile("./shaders/base.wgsl");
 const text_base_shader = @embedFile("./shaders/text.wgsl");
-const ttf_default_font = @embedFile("./embed/ttf/GoNotoCurrent-Regular.ttf");
-const png_default_font = @embedFile("./embed/png/Roboto-Medium-50.png");
-
-
+const ttf_font = @embedFile("./embed/GoNotoCurrent-Regular.ttf");
 
 fn initScene(
     allocator: std.mem.Allocator,
     font_atlas_list: *std.ArrayList(FontTextureAtlas),
-    font_bmps: *std.ArrayList(Image),
     textobjects: *std.ArrayList(TextObject),
     textdrawables: *std.ArrayList(TextDrawable),
     drawables: *std.ArrayList(Drawable),
@@ -160,15 +156,25 @@ fn initScene(
     }
 
     {
+        const font_chars = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+
+        const font_texture_atlas = FontTextureAtlas.from_ttf(
+            allocator, ttf_font, font_chars, 50, 19,
+        ) catch unreachable;
+
+        font_atlas_list.append(font_texture_atlas) catch unreachable;
+    }
+
+    {
         const font_chars = comptime IntArrayFromTo(32, 127);
-        const font_bmp = zstbi.Image.loadFromMemory(png_default_font, 1) catch
-            unreachable;
-        font_bmps.append(font_bmp) catch unreachable;
+        //const font_bmp = zstbi.Image.loadFromMemory(png_default_font, 1) 
+        const font_bmp = zstbi.Image.loadFromFile("./content/font/png/Roboto-Medium-50.png", 1)
+            catch unreachable;
 
         const font_texture_atlas = FontTextureAtlas.from_bmp(
             allocator, &font_bmp, &font_chars, 19,
         ) catch unreachable;
-        
+
         font_atlas_list.append(font_texture_atlas) catch unreachable;
     }
 
@@ -182,8 +188,8 @@ fn initScene(
         );
         textdrawables.append(.{
             .textobj_index = @as(u32, @intCast(textobjects.items.len)), 
-            .position = .{-1,0.97}, 
-            .scale = 0.0151,
+            .position = .{-1,0.955}, 
+            .scale = 0.0351,
             .color = .{1,1,1,1}
         }) catch unreachable;
         textobjects.append(new_text) catch unreachable;
@@ -193,13 +199,13 @@ fn initScene(
         const new_text = TextObject.string_to_textobj(
             allocator, 
             &font_atlas_list.items[0], 
-            "fps:000",
+            "fps:00000",
             .{0.025,0.025},
         );
         textdrawables.append(.{
             .textobj_index = @as(u32, @intCast(textobjects.items.len)), 
-            .position = .{-1,0.91}, 
-            .scale = 0.0151,
+            .position = .{-1,0.92}, 
+            .scale = 0.0351,
             .color = .{1,1,1,1},
         }) catch unreachable;
         textobjects.append(new_text) catch unreachable;
@@ -229,13 +235,13 @@ pub fn create_default_state(allocator: std.mem.Allocator,
 
 
     var images = std.ArrayList(Image).init(arena);
-    var font_bmps = std.ArrayList(Image).init(arena);
     var meshes_indices = std.ArrayList(IndexType).init(arena);
     var meshes_vertices = std.ArrayList(Vertex).init(arena);
     
     initScene(
         allocator,
-        &font_atlas_list,&font_bmps,&textobjects, &textdrawables,
+        &font_atlas_list,
+        &textobjects, &textdrawables,
         &drawables, &meshes, &images,
         &meshes_indices, &meshes_vertices,
     );

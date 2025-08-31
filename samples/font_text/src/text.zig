@@ -90,6 +90,7 @@ pub const OffsetMap = struct {
     pub fn deinit(self: OffsetMap, allocator: std.mem.Allocator) void {
        allocator.free(self.x);
        allocator.free(self.y);
+
     }
 };
 pub const FontTextureAtlas = struct {
@@ -97,8 +98,132 @@ pub const FontTextureAtlas = struct {
     lowest_value: u8,
     width_glyph_count: u32,
     offset: OffsetMap,
+    pub fn from_ttf(allocator: std.mem.Allocator, ttf_data: []const u8,
+        comptime font_chars: []const u8, pixel_height:u16,
+        width_glyph_count: u16)  !FontTextureAtlas {
+        const height_glyph_count = @as(u16,@intFromFloat(
+            @ceil(
+                @as(f32,@floatFromInt(font_chars.len)) / 
+                @as(f32,@floatFromInt(width_glyph_count))
+            )
+        ));
+
+        var font_texture_atlas:FontTextureAtlas = .{
+            .bmp = undefined,
+            .lowest_value = font_chars[0],
+            .width_glyph_count = width_glyph_count,
+            .offset = try OffsetMap.init(allocator, width_glyph_count,
+                height_glyph_count),
+        };
+
+        
+        const width: u32 = width_glyph_count*pixel_height;
+        const height: u32 = height_glyph_count*pixel_height;
+        var bmp_data = try allocator.alloc(u8, (width)*(height) );
+        for(0..bmp_data.len) |i| {bmp_data[i] = 0;}
+
+        const GlyphBMP = struct {
+            width: u16, 
+            height: u16,
+            data: []u8,
+        };
+        var bmp_glyps = std.ArrayList(GlyphBMP).init(allocator);
+
+        const ttf = try TrueType.load(ttf_data); 
+        const scale = 
+            ttf.scaleForPixelHeight(@as(f32,@floatFromInt(pixel_height)));
+        var buf: std.ArrayListUnmanaged(u8) = .empty;
+        defer buf.deinit(allocator);
+
+        var it = std.unicode.Utf8View.initComptime(font_chars).iterator();
+        while(it.nextCodepoint()) |codepoint| {
+            if(ttf.codepointGlyphIndex(codepoint)) |glyph| {
+                buf.clearRetainingCapacity();
+                const dims = ttf.glyphBitmap(
+                    allocator, &buf, glyph, scale, scale
+                ) catch |err| switch (err) {
+                    TrueType.GlyphBitmapError.GlyphNotFound => {
+                        for(0..buf.items.len) |i| {buf.items[i] = 0;}
+                        const glyph_bmp: GlyphBMP = .{
+                            .width = pixel_height,
+                            .height = pixel_height,
+                            .data = try allocator.dupe(u8, buf.items),
+                        };
+                        try bmp_glyps.append(glyph_bmp);
+                        continue;
+                    },
+                    else => {unreachable;},
+                };
+                const glyph_bmp: GlyphBMP = .{
+                    .width = dims.width,
+                    .height = dims.height,
+                    .data = try allocator.dupe(u8, buf.items),
+                };
+                try bmp_glyps.append(glyph_bmp);
+                //Calculate OffsetMap 
+            }
+        }
+
+        var data_count:u32 = 0;
+        for(0..height_glyph_count) |height_glyph_count_loop| {
+            const hgc:u16 = @intCast(height_glyph_count_loop);
+            const glyph_line_begin = width_glyph_count * hgc;
+            const glyph_line_end = @min(
+                glyph_line_begin+width_glyph_count,
+                bmp_glyps.items.len
+            );
+            for(0..pixel_height) |line_height| {
+                const h:u16 = @intCast(line_height);
+
+                for(glyph_line_begin..glyph_line_end) |glyph_number_in_line| {
+                    const g:u16 = @intCast(glyph_number_in_line);
+                    const lb_idx = h*bmp_glyps.items[g].width;
+                    const le_idx = lb_idx+bmp_glyps.items[g].width;
+
+                    data_count = hgc*width*(pixel_height-1) + h*width + pixel_height*g;
+                    if(le_idx <= bmp_glyps.items[g].data.len) {
+                        for(lb_idx..le_idx) |i| {
+                            bmp_data[data_count+(i-lb_idx)] = bmp_glyps.items[g].data[i];
+                        }
+                    } else {
+                        break;
+                    }
+                }
+            } 
+        }
+        var bmp = try gpu.zstbi.Image.createEmpty(width, height, 1, .{.bytes_per_component = 1, .bytes_per_row = 1*width});
+        bmp.data = bmp_data;
+        font_texture_atlas.bmp = bmp;
+        return font_texture_atlas;
+        
+//      const p:bool = true;
+//      if(p) {
+//          var count:u32 = 0;
+//          for(0..height) |_| {
+//              for(0..width) |_| {
+//                  const pix = bmp_data[count];
+//                  if(pix == 0) {
+//                      std.debug.print(" ", .{});
+//                  } else {
+//                      std.debug.print("o", .{});
+//                  }
+//                  count += 1;
+//              }
+//              std.debug.print("\n",.{});
+//          }
+//          std.process.exit(1);
+//      }
+
+    }
     pub fn from_bmp(allocator: std.mem.Allocator, font_bmp: *const gpu.zstbi.Image,
-        font_chars: []const u8, width_glyph_count: u32) !FontTextureAtlas {
+        font_chars: []const u8, width_glyph_count: u16) !FontTextureAtlas {
+        const height_glyph_count = @as(u16,@intFromFloat(
+            @ceil(
+                @as(f32,@floatFromInt(font_chars.len)) / 
+                @as(f32,@floatFromInt(width_glyph_count))
+            )
+        ));
+
         //std.debug.print("{c}", .{font_chars}); //Print chars to screen
         var font_texture_atlas: FontTextureAtlas = .{
             .bmp = font_bmp.*,
@@ -111,7 +236,6 @@ pub const FontTextureAtlas = struct {
         const glyph_offset_x: f32 = 
             1 / @as(f32,@floatFromInt(width_glyph_count));
 
-        const height_glyph_count = 5;
         const glyph_offset_y: f32 = 
             1 / @as(f32,@floatFromInt(height_glyph_count));
 
@@ -124,6 +248,7 @@ pub const FontTextureAtlas = struct {
         }
         return font_texture_atlas;
     }
+
                                                                                                                  
     pub fn get_offset_of(self:*const FontTextureAtlas, c:u8) [4]f32 {
         const off_idx = c-self.lowest_value;
@@ -147,16 +272,12 @@ pub const FontTextureAtlas = struct {
         path:[:0]const u8) !void {
         try self.bmp.writeToFile(path, gpu.zstbi.ImageWriteFormat.png);
     }
-
+                           
     pub fn deinit(self:FontTextureAtlas, allocator: std.mem.Allocator) void {
         self.offset.deinit(allocator);
         //self.bmp.deinit(); 
     }
 };
-
-//pub fn ttf_to_bmp() {
-//
-//}
 
 pub const TextVertex = [2]f32;
 const TextModel = struct {
