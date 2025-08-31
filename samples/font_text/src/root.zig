@@ -22,7 +22,7 @@ pub const pipelines = @import("pipelines.zig");
 
 const base_shader = @embedFile("./shaders/base.wgsl");
 const text_base_shader = @embedFile("./shaders/text.wgsl");
-const ttf_font = @embedFile("./embed/GoNotoCurrent-Regular.ttf");
+const ttf_font = @embedFile("./embed/Roboto-Medium.ttf");
 
 fn initScene(
     allocator: std.mem.Allocator,
@@ -159,7 +159,7 @@ fn initScene(
         const font_chars = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
 
         const font_texture_atlas = FontTextureAtlas.from_ttf(
-            allocator, ttf_font, font_chars, 50, 19,
+            allocator, ttf_font, font_chars, 20, 5,
         ) catch unreachable;
 
         font_atlas_list.append(font_texture_atlas) catch unreachable;

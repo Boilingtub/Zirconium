@@ -141,12 +141,12 @@ pub const FontTextureAtlas = struct {
                 buf.clearRetainingCapacity();
                 const dims = ttf.glyphBitmap(
                     allocator, &buf, glyph, scale, scale
-                ) catch |err| switch (err) {
+                )
+                catch |err| switch (err) {
                     TrueType.GlyphBitmapError.GlyphNotFound => {
-                        for(0..buf.items.len) |i| {buf.items[i] = 0;}
                         const glyph_bmp: GlyphBMP = .{
-                            .width = pixel_height,
-                            .height = pixel_height,
+                            .width = (pixel_height),
+                            .height = (pixel_height),
                             .data = try allocator.dupe(u8, buf.items),
                         };
                         try bmp_glyps.append(glyph_bmp);
@@ -161,6 +161,11 @@ pub const FontTextureAtlas = struct {
                 };
                 try bmp_glyps.append(glyph_bmp);
                 //Calculate OffsetMap 
+                const xidx:u32 = (@as(u32,@intCast(bmp_glyps.items.len)) % (width_glyph_count+1));
+                const yidx:u32 = (@as(u32,@intCast(bmp_glyps.items.len)) / width_glyph_count);
+                font_texture_atlas.offset.x[xidx] = @as(f32,(@floatFromInt(xidx*pixel_height+dims.width)))/@as(f32,@floatFromInt(width));
+                font_texture_atlas.offset.y[yidx] = @as(f32,(@floatFromInt(yidx*pixel_height+dims.height)))/@as(f32,@floatFromInt(height));
+
             }
         }
 
@@ -180,13 +185,12 @@ pub const FontTextureAtlas = struct {
                     const lb_idx = h*bmp_glyps.items[g].width;
                     const le_idx = lb_idx+bmp_glyps.items[g].width;
 
-                    data_count = hgc*width*(pixel_height-1) + h*width + pixel_height*g;
+                    data_count = hgc*width*(pixel_height-1) + h*width + (pixel_height)*g;
                     if(le_idx <= bmp_glyps.items[g].data.len) {
                         for(lb_idx..le_idx) |i| {
-                            bmp_data[data_count+(i-lb_idx)] = bmp_glyps.items[g].data[i];
+                            bmp_data[data_count] = bmp_glyps.items[g].data[i];
+                            data_count += 1;
                         }
-                    } else {
-                        break;
                     }
                 }
             } 
@@ -196,23 +200,24 @@ pub const FontTextureAtlas = struct {
         font_texture_atlas.bmp = bmp;
         return font_texture_atlas;
         
-//      const p:bool = true;
-//      if(p) {
-//          var count:u32 = 0;
-//          for(0..height) |_| {
-//              for(0..width) |_| {
-//                  const pix = bmp_data[count];
-//                  if(pix == 0) {
-//                      std.debug.print(" ", .{});
-//                  } else {
-//                      std.debug.print("o", .{});
-//                  }
-//                  count += 1;
-//              }
-//              std.debug.print("\n",.{});
-//          }
-//          std.process.exit(1);
-//      }
+//     const p:bool = true;
+//     if(p) {
+//         var count:u32 = 0;
+//         for(0..height) |_| {
+//             for(0..width) |_| {
+//                 const pix = bmp_data[count];
+//                 if(pix == 0) {
+//                     std.debug.print(" ", .{});
+//                 } else {
+//                     std.debug.print("o", .{});
+//                 }
+//                 count += 1;
+//             }
+//             std.debug.print("\n",.{});
+//         }
+//         std.process.exit(1);
+//     }
+      
 
     }
     pub fn from_bmp(allocator: std.mem.Allocator, font_bmp: *const gpu.zstbi.Image,
