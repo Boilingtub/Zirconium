@@ -24,7 +24,7 @@ pub fn main() !void {
     defer window.destroy();
     try window.setInputMode(Zr.Windowing.CURSOR, Zr.Windowing.CURSOR_DISABLED);
      
-    var state = try Zr.create_default_state(allocator, window);
+    var state = try Zr.create_default_state(allocator, window,true);
     defer state.deinit(allocator);
 
     //state.camera.position = .{3.0,2.0,3.0};
@@ -34,6 +34,7 @@ pub fn main() !void {
     while (!window.shouldClose() and window.getKey(.escape) != .press) {
         Zr.Windowing.pollEvents();
         const delta_time = (state.gctx.stats.delta_time);
+        
         const fps = try std.fmt.allocPrint(allocator, "fps:{d}", .{@floor(1/delta_time)});
         defer allocator.free(fps);
         state.textobjects.items[1].change_string(allocator, fps);

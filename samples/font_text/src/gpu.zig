@@ -70,7 +70,7 @@ pub const State = struct {
     mip_level: f32 = 0,
 
     pub fn init_empty(allocator: std.mem.Allocator,
-        window: *zglfw.Window,
+        window: *zglfw.Window, vsync:bool
         ) !*State {
             const gctx = try zgpu.GraphicsContext.create(allocator, .{
                 .window = window,
@@ -85,7 +85,11 @@ pub const State = struct {
             }, .{});
             errdefer gctx.destroy(allocator);
             const sampler = gctx.createSampler(.{});
-            gctx.swapchain_descriptor.present_mode = .immediate;  
+            if(vsync) {
+                gctx.swapchain_descriptor.present_mode = .fifo;
+            } else {
+                gctx.swapchain_descriptor.present_mode = .immediate; 
+            }
             gctx.swapchain_descriptor.format = .bgra8_unorm;
         
             

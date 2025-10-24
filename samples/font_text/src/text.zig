@@ -202,6 +202,7 @@ pub const FontTextureAtlas = struct {
         bmp.data = bmp_data;
         font_texture_atlas.bmp = bmp;
         
+        //allocator.free(bmp_data);
       //const p:bool = true;
       //if(p) {
       //    var count:u32 = 0;
@@ -283,8 +284,8 @@ pub const FontTextureAtlas = struct {
     }
                            
     pub fn deinit(self:FontTextureAtlas, allocator: std.mem.Allocator) void {
-        self.offset.deinit(allocator);
-        //self.bmp.deinit(); 
+        self.offset.deinit(allocator); 
+        //gpu.zstbi.Image.deinit(self.bmp); 
     }
 };
 

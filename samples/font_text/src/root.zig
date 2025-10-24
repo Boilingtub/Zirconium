@@ -155,19 +155,6 @@ fn initScene(
         );
     }
 
-    { // Font 0 for BMP font
-        const font_chars = comptime IntArrayFromTo(32, 127);
-        //const font_bmp = zstbi.Image.loadFromMemory(png_default_font, 1) 
-        const font_bmp = zstbi.Image.loadFromFile("./content/font/png/Roboto-Medium-50.png", 1)
-            catch unreachable;
-
-        const font_texture_atlas = FontTextureAtlas.from_bmp(
-            allocator, &font_bmp, &font_chars, 19,
-        ) catch unreachable;
-
-        font_atlas_list.append(font_texture_atlas) catch unreachable;
-    }
-
     { // Font 0 for TTF font
          const font_chars = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
    
@@ -176,6 +163,20 @@ fn initScene(
          ) catch unreachable;
    
          font_atlas_list.append(font_texture_atlas) catch unreachable;
+    }
+
+
+    { // Font 1 for BMP font
+        const font_chars = comptime IntArrayFromTo(32, 127);
+        //const font_bmp = zstbi.Image.loadFromMemory(png_default_font, 1) 
+        var font_bmp = zstbi.Image.loadFromFile("./content/font/png/Roboto-Medium-50.png", 1)
+            catch unreachable;
+
+        const font_texture_atlas = FontTextureAtlas.from_bmp(
+            allocator, &font_bmp, &font_chars, 19,
+        ) catch unreachable;
+
+        font_atlas_list.append(font_texture_atlas) catch unreachable;
     }
 
     {
@@ -215,8 +216,8 @@ fn initScene(
 }
 
 pub fn create_default_state(allocator: std.mem.Allocator,
-    window: *zglfw.Window) !*State {
-    const state = try State.init_empty(allocator,window);
+    window: *zglfw.Window,vsync:bool) !*State {
+    const state = try State.init_empty(allocator,window,vsync);
 
     var arena_state = std.heap.ArenaAllocator.init(allocator);
     defer arena_state.deinit();
