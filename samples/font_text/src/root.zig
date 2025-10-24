@@ -155,17 +155,7 @@ fn initScene(
         );
     }
 
-    {
-        const font_chars = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
-
-        const font_texture_atlas = FontTextureAtlas.from_ttf(
-            allocator, ttf_font, font_chars, 20, 5,
-        ) catch unreachable;
-
-        font_atlas_list.append(font_texture_atlas) catch unreachable;
-    }
-
-    {
+    { // Font 0 for BMP font
         const font_chars = comptime IntArrayFromTo(32, 127);
         //const font_bmp = zstbi.Image.loadFromMemory(png_default_font, 1) 
         const font_bmp = zstbi.Image.loadFromFile("./content/font/png/Roboto-Medium-50.png", 1)
@@ -178,13 +168,23 @@ fn initScene(
         font_atlas_list.append(font_texture_atlas) catch unreachable;
     }
 
+    { // Font 0 for TTF font
+         const font_chars = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
+   
+         const font_texture_atlas = FontTextureAtlas.from_ttf(
+             allocator, ttf_font, font_chars, 20, 5,
+         ) catch unreachable;
+   
+         font_atlas_list.append(font_texture_atlas) catch unreachable;
+    }
+
     {
-        const new_text = TextObject.string_to_textobj(
+          const new_text = TextObject.string_to_textobj(
             allocator, 
             &font_atlas_list.items[0], 
             //" !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~",
             "Zirconium:font_text:" ++ version,
-            .{0.025,0.025},
+            .{0.035,0.035},
         );
         textdrawables.append(.{
             .textobj_index = @as(u32, @intCast(textobjects.items.len)), 
@@ -198,13 +198,13 @@ fn initScene(
     {
         const new_text = TextObject.string_to_textobj(
             allocator, 
-            &font_atlas_list.items[0], 
+            &font_atlas_list.items[0],
             "fps:00000",
-            .{0.025,0.025},
+            .{0.035,0.035},
         );
         textdrawables.append(.{
             .textobj_index = @as(u32, @intCast(textobjects.items.len)), 
-            .position = .{-1,0.92}, 
+            .position = .{-1,0.89}, 
             .scale = 0.0351,
             .color = .{1,1,1,1},
         }) catch unreachable;

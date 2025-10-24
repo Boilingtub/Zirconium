@@ -98,6 +98,7 @@ pub const FontTextureAtlas = struct {
     lowest_value: u8,
     width_glyph_count: u32,
     offset: OffsetMap,
+
     pub fn from_ttf(allocator: std.mem.Allocator, ttf_data: []const u8,
         comptime font_chars: []const u8, pixel_height:u16,
         width_glyph_count: u16)  !FontTextureAtlas {
@@ -161,13 +162,15 @@ pub const FontTextureAtlas = struct {
                 };
                 try bmp_glyps.append(glyph_bmp);
                 //Calculate OffsetMap 
-                const xidx:u32 = (@as(u32,@intCast(bmp_glyps.items.len)) % (width_glyph_count+1));
-                const yidx:u32 = (@as(u32,@intCast(bmp_glyps.items.len)) / width_glyph_count);
+                const xidx:u32 = (@as(u32,@intCast(bmp_glyps.items.len % (width_glyph_count+1))));
+                const yidx:u32 = (@as(u32,@intCast(bmp_glyps.items.len/(width_glyph_count+1))));   
+                std.debug.print("xidx={d},yidx={d}\n", .{xidx,yidx});
                 font_texture_atlas.offset.x[xidx] = @as(f32,(@floatFromInt(xidx*pixel_height+dims.width)))/@as(f32,@floatFromInt(width));
                 font_texture_atlas.offset.y[yidx] = @as(f32,(@floatFromInt(yidx*pixel_height+dims.height)))/@as(f32,@floatFromInt(height));
-
             }
         }
+
+
 
         var data_count:u32 = 0;
         for(0..height_glyph_count) |height_glyph_count_loop| {
@@ -198,25 +201,26 @@ pub const FontTextureAtlas = struct {
         var bmp = try gpu.zstbi.Image.createEmpty(width, height, 1, .{.bytes_per_component = 1, .bytes_per_row = 1*width});
         bmp.data = bmp_data;
         font_texture_atlas.bmp = bmp;
-        return font_texture_atlas;
         
-//     const p:bool = true;
-//     if(p) {
-//         var count:u32 = 0;
-//         for(0..height) |_| {
-//             for(0..width) |_| {
-//                 const pix = bmp_data[count];
-//                 if(pix == 0) {
-//                     std.debug.print(" ", .{});
-//                 } else {
-//                     std.debug.print("o", .{});
-//                 }
-//                 count += 1;
-//             }
-//             std.debug.print("\n",.{});
-//         }
-//         std.process.exit(1);
-//     }
+      //const p:bool = true;
+      //if(p) {
+      //    var count:u32 = 0;
+      //    for(0..height) |_| {
+      //        for(0..width) |_| {
+      //            const pix = bmp_data[count];
+      //            if(pix == 0) {
+      //                std.debug.print(" ", .{});
+      //            } else {
+      //                std.debug.print("o", .{});
+      //            }
+      //            count += 1;
+      //        }
+      //        std.debug.print("\n",.{});
+      //    }
+      //    std.process.exit(1);
+      //}  
+
+        return font_texture_atlas;
       
 
     }
