@@ -159,12 +159,11 @@ fn initScene(
          const font_chars = " !\"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNOPQRSTUVWXYZ[\\]^_`abcdefghijklmnopqrstuvwxyz{|}~";
    
          const font_texture_atlas = FontTextureAtlas.from_ttf(
-             allocator, ttf_font, font_chars, 20, 5,
+             allocator, ttf_font, font_chars, 20, 19,
          ) catch unreachable;
    
          font_atlas_list.append(font_texture_atlas) catch unreachable;
     }
-
 
     { // Font 1 for BMP font
         const font_chars = comptime IntArrayFromTo(32, 127);
