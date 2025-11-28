@@ -48,15 +48,16 @@ fn initScene(
         Force_image_MipMap_compatible(&new_image);
 
 
-        drawables.append(.{
+        drawables.append(allocator, .{
             .mesh_index = @as(u32, @intCast(meshes.items.len)),
             .texture_index = @as(u32, @intCast(images.items.len)),
             .position = .{ 9, 0, 5 },
             .basecolor_roughness = .{ 1.0, 1.0, 1.0, 0.0 },
         }) catch unreachable;
 
-        images.append(new_image) catch unreachable;
+        images.append(allocator,new_image) catch unreachable;
         mesh.appendMesh(
+            allocator,
             new_mesh,
             meshes,
             meshes_indices,
@@ -72,15 +73,16 @@ fn initScene(
         //std.debug.print("primitive_plane mesh data!\n", .{}); new_mesh.print();
 
 
-        drawables.append(.{
+        drawables.append(allocator, .{
             .mesh_index = @as(u32, @intCast(meshes.items.len)),
             .texture_index = @as(u32, @intCast(images.items.len)),
             .position = .{ 6, 0, 5 },
             .basecolor_roughness = .{ 1.0, 1.0, 1.0, 0.0 },
         }) catch unreachable;
 
-        images.append(new_image) catch unreachable;
+        images.append(allocator, new_image) catch unreachable;
         mesh.appendMesh(
+            allocator,
             new_mesh,
             meshes,
             meshes_indices,
@@ -95,15 +97,16 @@ fn initScene(
         Force_image_MipMap_compatible(&new_image);
         //std.debug.print("cube.glb mesh data!\n", .{}); new_mesh.print();
 
-        drawables.append(.{
+        drawables.append(allocator, .{
             .mesh_index = @as(u32, @intCast(meshes.items.len)),
             .texture_index = @as(u32, @intCast(images.items.len)),
             .position = .{ 3, 0, 5 },
             .basecolor_roughness = .{ 1.0, 1.0, 1.0, 0.0 },
         }) catch unreachable;
 
-        images.append(new_image) catch unreachable;
+        images.append(allocator, new_image) catch unreachable;
         mesh.appendMesh(
+            allocator,
             new_mesh,
             meshes,
             meshes_indices,
@@ -117,15 +120,16 @@ fn initScene(
         Force_image_MipMap_compatible(&new_image);
         //std.debug.print("ball_mode.glb mesh data!\n", .{}); new_mesh.print();
 
-        drawables.append(.{
+        drawables.append(allocator,.{
             .mesh_index = @as(u32, @intCast(meshes.items.len)),
             .texture_index = @as(u32, @intCast(images.items.len)),
             .position = .{ 0, 0, 5 },
             .basecolor_roughness = .{ 0.0, 0.0, 1.0, 0.6 },
         }) catch unreachable;
 
-        images.append(new_image) catch unreachable;
+        images.append(allocator,new_image) catch unreachable;
         mesh.appendMesh(
+            allocator,
             new_mesh,
             meshes,
             meshes_indices,
@@ -139,15 +143,16 @@ fn initScene(
         Force_image_MipMap_compatible(&new_image);
 
 
-        drawables.append(.{
+        drawables.append(allocator,.{
             .mesh_index = @as(u32, @intCast(meshes.items.len)),
             .texture_index = @as(u32, @intCast(images.items.len)),
             .position = .{ -3, 0, 5 },
             .basecolor_roughness = .{ 0.5, 0.7, 0.2, 0.6 },
         }) catch unreachable;
 
-        images.append(new_image) catch unreachable;
+        images.append(allocator,new_image) catch unreachable;
         mesh.appendMesh(
+            allocator,
             new_mesh,
             meshes,
             meshes_indices,
@@ -162,7 +167,7 @@ fn initScene(
              allocator, ttf_font, font_chars, 20, 19,
          ) catch unreachable;
    
-         font_atlas_list.append(font_texture_atlas) catch unreachable;
+         font_atlas_list.append(allocator,font_texture_atlas) catch unreachable;
     }
 
     { // Font 1 for BMP font
@@ -175,7 +180,7 @@ fn initScene(
             allocator, &font_bmp, &font_chars, 19,
         ) catch unreachable;
 
-        font_atlas_list.append(font_texture_atlas) catch unreachable;
+        font_atlas_list.append(allocator,font_texture_atlas) catch unreachable;
     }
 
     {
@@ -186,13 +191,13 @@ fn initScene(
             "Zirconium:font_text:" ++ version,
             .{0.035,0.035},
         );
-        textdrawables.append(.{
+        textdrawables.append(allocator, .{
             .textobj_index = @as(u32, @intCast(textobjects.items.len)), 
             .position = .{-1,0.955}, 
             .scale = 0.0351,
             .color = .{1,1,1,1}
         }) catch unreachable;
-        textobjects.append(new_text) catch unreachable;
+        textobjects.append(allocator,new_text) catch unreachable;
     }
 
     {
@@ -202,13 +207,13 @@ fn initScene(
             "fps:00000",
             .{0.035,0.035},
         );
-        textdrawables.append(.{
+        textdrawables.append(allocator,.{
             .textobj_index = @as(u32, @intCast(textobjects.items.len)), 
             .position = .{-1,0.89}, 
             .scale = 0.0351,
             .color = .{1,1,1,1},
         }) catch unreachable;
-        textobjects.append(new_text) catch unreachable;
+        textobjects.append(allocator,new_text) catch unreachable;
     
 
     }
@@ -225,18 +230,21 @@ pub fn create_default_state(allocator: std.mem.Allocator,
     zstbi.init(arena);
 
     //Init Scene data
-    var textobjects = std.ArrayList(TextObject).init(allocator);
-    var textdrawables = std.ArrayList(TextDrawable).init(allocator);
-    var meshes = std.ArrayList(Mesh).init(allocator);
-    var drawables = std.ArrayList(Drawable).init(allocator);
-    var font_atlas_list = std.ArrayList(FontTextureAtlas).init(allocator);
+    var textobjects = try std.ArrayList(TextObject)
+        .initCapacity(allocator,64);
+    var textdrawables = try std.ArrayList(TextDrawable)
+        .initCapacity(allocator,16);
+    var meshes = try std.ArrayList(Mesh)
+        .initCapacity(allocator,16);
+    var drawables = try std.ArrayList(Drawable)
+        .initCapacity(allocator,16);
+    var font_atlas_list = try std.ArrayList(FontTextureAtlas)
+        .initCapacity(allocator,16);
 
     //remember: font texture atlas allocated with arena will clear at end of init 
-
-
-    var images = std.ArrayList(Image).init(arena);
-    var meshes_indices = std.ArrayList(IndexType).init(arena);
-    var meshes_vertices = std.ArrayList(Vertex).init(arena);
+    var images = try std.ArrayList(Image).initCapacity(arena,16);
+    var meshes_indices = try std.ArrayList(IndexType).initCapacity(arena,16);
+    var meshes_vertices = try std.ArrayList(Vertex).initCapacity(arena,16);
     
     initScene(
         allocator,
@@ -257,7 +265,7 @@ pub fn create_default_state(allocator: std.mem.Allocator,
     state.text_instance_buffers = try std.ArrayList(zgpu.BufferHandle).initCapacity(
         allocator, state.textobjects.items.len
     );
-    pipelines.text_pipeline(state,0,text_base_shader);//Only Taking font_atlas_list[0]
+    pipelines.text_pipeline(allocator,state,0,text_base_shader);//Only Taking font_atlas_list[0]
     pipelines.render_pipeline(
         state,
         meshes_vertices.items,
@@ -333,9 +341,9 @@ pub const Windowing = struct {
 };
 
 pub export fn print_version() void {
-    const stdout_file = std.io.getStdOut().writer();
-    var bw = std.io.bufferedWriter(stdout_file);
-    const stdout = bw.writer();
+    var stdout_buffer: [32]u8 = undefined;
+    var stdout_writer = std.fs.File.stdout().writer(&stdout_buffer);
+    const stdout = &stdout_writer.interface;
     stdout.print("Zirconium {s} Loaded\n", .{version}) catch unreachable;
-    bw.flush() catch unreachable;
+    stdout.flush() catch unreachable;
 }

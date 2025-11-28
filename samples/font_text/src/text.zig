@@ -130,7 +130,10 @@ pub const FontTextureAtlas = struct {
             off_y: i16,
             data: []u8,
         };
-        var bmp_glyps = std.ArrayList(GlyphBMP).init(allocator);
+        var bmp_glyps = try std.ArrayList(GlyphBMP).initCapacity(
+            allocator,
+            font_chars.len
+        );
 
         const ttf = try TrueType.load(ttf_data); 
         const scale = 
@@ -154,7 +157,7 @@ pub const FontTextureAtlas = struct {
                             .off_y = 0,
                             .data = try allocator.dupe(u8, buf.items),
                         };
-                        try bmp_glyps.append(glyph_bmp);
+                        try bmp_glyps.append(allocator, glyph_bmp);
                         continue;
                     },
                     else => {unreachable;},
@@ -166,7 +169,7 @@ pub const FontTextureAtlas = struct {
                     .off_y = dims.off_y,
                     .data = try allocator.dupe(u8, buf.items),
                 };
-                try bmp_glyps.append(glyph_bmp);
+                try bmp_glyps.append(allocator, glyph_bmp);
                 //Calculate OffsetMap 
                 const xidx:u32 = (@as(u32,@intCast(bmp_glyps.items.len % (width_glyph_count))));
                 const yidx:u32 = (@as(u32,@intCast(bmp_glyps.items.len/(width_glyph_count))));   

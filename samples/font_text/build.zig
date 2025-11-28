@@ -25,70 +25,70 @@ pub fn build(b: *std.Build,
             lib_mod.addLibraryPath(system_sdk.path("linux/lib/x86_64-linux-gnu"));
         }
     }
+    //modules 
     const gpu = b.addModule("gpu", .{
         .root_source_file = b.path(src_path ++ "gpu.zig")
     });
     lib.root_module.addImport("gpu", gpu);
 
-    const zglfw = b.dependency("zglfw", .{
-        .target = target,
-    });
-    gpu.addImport("zglfw", zglfw.module("root"));
-    lib.linkLibrary(zglfw.artifact("glfw"));
-
-    @import("zgpu").addLibraryPathsTo(lib);
-    const zgpu = b.dependency("zgpu", .{
-        .target = target,
-    });
-    gpu.addImport("zgpu", zgpu.module("root"));
-    gpu.linkLibrary(zgpu.artifact("zdawn"));
-
-    const zmath = b.dependency("zmath", .{
-        .target = target,
-    });
-    gpu.addImport("zmath", zmath.module("root")); 
-    
     const pipelines = b.addModule("pipelines",.{
         .root_source_file = b.path(src_path ++ "pipelines.zig")
     });
     pipelines.addImport("gpu", gpu);
 
-    //mesh.zig
     const mesh = b.addModule("mesh", .{
         .root_source_file = b.path(src_path ++ "mesh.zig")
-    });
-    const zgltf = b.addModule("zgltf", .{
-        .root_source_file = b.path("./libs/zgltf/main.zig")
-    });
-    mesh.addImport("zgltf", zgltf);
-    const zobj = b.addModule("zobj", .{
-        .root_source_file = b.path("./libs/zobj/src/main.zig")
-    });
-    mesh.addImport("zobj", zobj);
+    }); 
     gpu.addImport("mesh", mesh);
 
-    //image.zig
-    const zstbi = b.dependency("zstbi", .{});
-    gpu.addImport("zstbi", zstbi.module("root"));
-    
-    //TrueType.zig 
     const text = b.addModule("text", .{
         .root_source_file = b.path(src_path ++ "text.zig"),
     });
-    const TrueType = b.addModule("TrueType", .{
-        .root_source_file = b.path("./libs/TrueType/TrueType.zig"),
-    });
-    text.addImport("TrueType", TrueType);
     text.addImport("gpu", gpu);
     gpu.addImport("text", text);
 
-
-    //camera.zig 
     const camera = b.addModule("camera", .{
         .root_source_file = b.path(src_path ++ "camera.zig")
     });
-    camera.addImport("zmath",zmath.module("root"));
     gpu.addImport("camera", camera);
+
+    //dependencies
+    @import("zgpu").addLibraryPathsTo(lib);
+    const zgpu = b.dependency("zgpu", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    gpu.addImport("zgpu", zgpu.module("root"));
+    gpu.linkLibrary(zgpu.artifact("zdawn"));
+
+    
+    const zglfw = b.dependency("zglfw", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    gpu.addImport("zglfw", zglfw.module("root"));
+    lib.linkLibrary(zglfw.artifact("glfw"));
+    
+    const zmath = b.dependency("zmath", .{
+        .target = target,
+    });
+    gpu.addImport("zmath", zmath.module("root")); 
+    camera.addImport("zmath",zmath.module("root"));
+
+    const zgltf = b.dependency("zgltf", .{
+        .target =  target,
+        .optimize = optimize,
+    });
+    mesh.addImport("zgltf", zgltf.module("zgltf"));
+
+    const zstbi = b.dependency("zstbi", .{});
+    gpu.addImport("zstbi", zstbi.module("root"));
+
+    const TrueType = b.dependency("TrueType", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    text.addImport("TrueType", TrueType.module("TrueType"));
 
     b.installArtifact(lib);
 
@@ -100,7 +100,7 @@ pub fn build(b: *std.Build,
     exe_mod.addImport("Zirconium", lib_mod);
 
     const exe = b.addExecutable(.{
-        .name = "Zirconium",
+        .name = "Zirconium-demo",
         .root_module = exe_mod,
     });
 

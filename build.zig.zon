@@ -2,36 +2,61 @@
     .name = .Zirconium,
     .version = "0.0.0",
     .fingerprint = 0xdd90d8756a4c9a1b,
-    .minimum_zig_version = "0.15.1",
+    .minimum_zig_version = "0.15.2",
     .dependencies = .{
         .system_sdk = .{
             .url = "https://github.com/zig-gamedev/system_sdk/archive/c0dbf11cdc17da5904ea8a17eadc54dee26567ec.tar.gz",
             .hash = "system_sdk-0.3.0-dev-alwUNnYaaAJAtIdE2fg4NQfDqEKs7QCXy_qYukAOBfmF",
         },
-        .zstbi = .{
-            .url = "https://github.com/zig-gamedev/zstbi/archive/094c4bba5cdbec167d3f6aaa98cccccd5c99145f.tar.gz",
-            .hash = "zstbi-0.11.0-dev-L0Ea_-eVBwCl8RYA98PhLDw3Fhw5k7FJOHSMDKWDOvqx",
-        },
-        .zmath = .{
-            .url = "https://github.com/zig-gamedev/zmath/archive/6a0747fe6834e58793500e05953c4c6ca045d3e1.tar.gz",
-            .hash = "zmath-0.11.0-dev-wjwivTArAwDIkHSuSiU3KuBvxh7igjJjJMqYRfy3hihO",
+        .zgpu = .{
+            .url = "https://github.com/zig-gamedev/zgpu/archive/b582a62c13af1a8228f72c47ea2eaa21259760eb.tar.gz",
+            .hash = "zgpu-0.12.0-dev-nqFT5IChCACWEis11EjrBQGaA0QXEqXfsi1e6cF3_AL3",
         },
         .zglfw = .{
-            .url = "https://github.com/zig-gamedev/zglfw/archive/feeeff9386dd44ba2c18488113023865c41b80a4.tar.gz",
-            .hash = "zglfw-0.10.0-dev-zgVDNLyhIQCZR_rbIf7hnCKuifzcmPOLOQhd_hrqq8cl",
+            .url = "https://github.com/zig-gamedev/zglfw/archive/6034a5623312c58bf5e64c1a2b686691c28575f4.tar.gz",
+            .hash = "zglfw-0.10.0-dev-zgVDNPKyIQCBi-wv_vxkvIQq1u0bP4D56Wszx_2mszc7",
         },
-        .zgpu = .{
-            .url = "https://github.com/zig-gamedev/zgpu/archive/d860e2b4a333cacffb168fab49a233c5d2f1bca2.tar.gz",
-            .hash = "zgpu-0.12.0-dev-nqFT5EKgCADkhwAf97_pfSOmPWEguKmljSECs9ihpFS7",
+
+        .zmath = .{
+            .url = "https://github.com/zig-gamedev/zmath/archive/3a5955b2b72cd081563fbb084eff05bffd1e3fbb.tar.gz",
+            .hash = "zmath-0.11.0-dev-wjwivdMsAwD-xaLj76YHUq3t9JDH-X16xuMTmnDzqbu2",
+        },
+        .zstbi = .{
+            .url = "https://github.com/zig-gamedev/zstbi/archive/2c4b3100ccb7aed90ecc9439030899764e2a8d47.tar.gz",
+            .hash = "zstbi-0.11.0-dev-L0Ea_yaWBwAHwFoCuyjkFyaiSsbjt4UOrkntR0c_nmzz",
+        },
+        .zgltf = .{
+            .url = "git+https://github.com/kooparse/zgltf#ec52d477db346af99d4cdced4e35e67e1670023f",
+            .hash = "zgltf-0.1.0-sX6QAt0SAgDzMQCCG-N181hVbx8JnwFYZ3luQigQpVBM",
+        },
+        .TrueType = .{
+            .url = "git+https://codeberg.org/andrewrk/TrueType.git#7543e2dca70267e8f09e37be00fbc0385138581d",
+            .hash = "TrueType-0.0.0-Ne-mWHIGAQBwHsiS9z_vbr1SkVZCkG01Vpzrs079dzIO",
+        },
+
+        .dawn_x86_64_linux_gnu = .{
+            .url = "https://github.com/michal-z/webgpu_dawn-x86_64-linux-gnu/archive/7d70db023bf254546024629cbec5ee6113e12a42.tar.gz",
+            .hash = "N-V-__8AAK7XUQNKNRnv1J6i189jtURJKjp3HTftoyD4Y4CB",
+            .lazy = true,
+        },
+        .dawn_aarch64_linux_gnu = .{
+            .url = "https://github.com/michal-z/webgpu_dawn-aarch64-linux-gnu/archive/c1f55e740a62f6942ff046e709ecd509a005dbeb.tar.gz",
+            .hash = "N-V-__8AAJ-wTwNc0T9oSflO92iO6IxrdMeRil37UU-KQD_M",
+            .lazy = true,
         },
         .dawn_x86_64_windows_gnu = .{
             .url = "https://github.com/michal-z/webgpu_dawn-x86_64-windows-gnu/archive/d3a68014e6b6b53fd330a0ccba99e4dcfffddae5.tar.gz",
             .hash = "N-V-__8AAGsYnAT5RIzeAu881RveLghQ1EidqgVBVx10gVTo",
             .lazy = true,
         },
-        .dawn_x86_64_linux_gnu = .{
-            .url = "https://github.com/michal-z/webgpu_dawn-x86_64-linux-gnu/archive/7d70db023bf254546024629cbec5ee6113e12a42.tar.gz",
-            .hash = "N-V-__8AAK7XUQNKNRnv1J6i189jtURJKjp3HTftoyD4Y4CB",
+        .dawn_aarch64_macos = .{
+            .url = "https://github.com/michal-z/webgpu_dawn-aarch64-macos/archive/d2360cdfff0cf4a780cb77aa47c57aca03cc6dfe.tar.gz",
+            .hash = "N-V-__8AALVIRAIf5nfpx8-4mEo2RGsynVryPQPcHk95qFM5",
+            .lazy = true,
+        },
+        .dawn_x86_64_macos = .{
+            .url = "https://github.com/michal-z/webgpu_dawn-x86_64-macos/archive/901716b10b31ce3e0d3fe479326b41e91d59c661.tar.gz",
+            .hash = "N-V-__8AAIz1QAKx8C8vft2YoHjGTjEAkH2QMR2UiAo8xZJ-",
             .lazy = true,
         },
     },

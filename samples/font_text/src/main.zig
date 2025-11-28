@@ -66,5 +66,3 @@ pub fn main() !void {
 
    }
 }
-
-test "base test" {}

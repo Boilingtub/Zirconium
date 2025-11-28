@@ -36,6 +36,7 @@ pub fn create_commands(allocator: std.mem.Allocator,
 }
 
 pub fn text_pipeline(
+    allocator: std.mem.Allocator,
     state: *State,
     font_atlas_idx: u32, //Temporary FIx
     text_shader: [*:0]const u8,
@@ -46,7 +47,6 @@ pub fn text_pipeline(
 
     //INIT Text Render bindgroups
     //font_texture_atlas.write_to_png("font.debug") catch unreachable;
-
     const font_texture = gctx.createTexture(.{
        .usage = .{ .texture_binding = true, .copy_dst = true},
        .size = .{
@@ -130,7 +130,7 @@ pub fn text_pipeline(
         gpu.recreateInstanceBuffer(
             state, &itb, state.textobjects.items[i].charobjs.len, text.CharObject
         );
-        state.text_instance_buffers.append(itb) catch unreachable;
+        state.text_instance_buffers.append(allocator,itb) catch unreachable;
     } 
 
     // create text render pipeline 

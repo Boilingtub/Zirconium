@@ -294,18 +294,18 @@ pub const State = struct {
 
     pub fn deinit(state: *State, allocator: std.mem.Allocator) void {
         state.gctx.destroy(allocator);
-        state.meshes.deinit();
-        state.drawables.deinit();
+        state.meshes.deinit(allocator);
+        state.drawables.deinit(allocator);
         for(state.textobjects.items) |t| {
             t.deinit(allocator);
         }
-        state.textobjects.deinit();
-        state.textdrawables.deinit();
-        state.text_instance_buffers.deinit();
+        state.textobjects.deinit(allocator);
+        state.textdrawables.deinit(allocator);
+        state.text_instance_buffers.deinit(allocator);
         for(state.font_atlas_list.items) |t| {
             t.deinit(allocator);
         }
-        state.font_atlas_list.deinit();
+        state.font_atlas_list.deinit(allocator);
         allocator.destroy(state);
     }
 };

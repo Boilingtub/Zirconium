@@ -1,5 +1,4 @@
 const zgltf = @import("zgltf");
-const zobj = @import("zobj");
 const std = @import("std");
 
 pub const IndexType = u16;
@@ -32,19 +31,20 @@ pub const Drawable = struct {
 };
 
 pub fn appendMesh(
+    allocator: std.mem.Allocator,
     model: Model, 
     meshes: *std.ArrayList(Mesh),
     meshes_indices: *std.ArrayList(IndexType),
     meshes_vertices: *std.ArrayList(Vertex),
 ) void {
-    meshes.append(.{
+    meshes.append(allocator, .{
         .index_offset = @as(u32, @intCast(meshes_indices.items.len)),
         .vertex_offset = @as(i32, @intCast(meshes_vertices.items.len)),
         .num_indices = @as(u32, @intCast(model.indices.len)),
         .num_vertices = @as(u32, @intCast(model.vertices.len)),
     }) catch unreachable;
-    meshes_indices.appendSlice(model.indices) catch unreachable;
-    meshes_vertices.appendSlice(model.vertices) catch unreachable;
+    meshes_indices.appendSlice(allocator, model.indices) catch unreachable;
+    meshes_vertices.appendSlice(allocator, model.vertices) catch unreachable;
 }
 
 pub const Model = struct {
@@ -83,55 +83,55 @@ pub fn load_gltf_file(
         path,
         512_000,
         null,
-        4,
+        std.mem.Alignment.@"4",
         null
     ) catch unreachable;
     defer arena.free(buf);
-    var gltf = zgltf.init(arena);
+    var gltf = zgltf.Gltf.init(arena);
     defer gltf.deinit();
 
     gltf.parse(buf) catch unreachable;
 
-    var out_indices = std.ArrayList(IndexType).init(arena);
-    var out_positions = std.ArrayList([3]f32).init(arena);
-    var out_normals = std.ArrayList([3]f32).init(arena);
-    var out_texcoords = std.ArrayList([2]f32).init(arena);
+    var out_indices = try std.ArrayList(IndexType).initCapacity(arena,4);
+    var out_positions = try std.ArrayList([3]f32).initCapacity(arena,4);
+    var out_normals = try std.ArrayList([3]f32).initCapacity(arena,4);
+    var out_texcoords = try std.ArrayList([2]f32).initCapacity(arena,4);
 
-    const mesh = gltf.data.meshes.items[0];
-    for (mesh.primitives.items) |primitive| {
+    const mesh = gltf.data.meshes[0];
+    for (mesh.primitives) |primitive| {
         {
             const indices_idx = primitive.indices.?;
-            const accessor = gltf.data.accessors.items[indices_idx];
+            const accessor = gltf.data.accessors[indices_idx];
             var iter = accessor.iterator(IndexType, &gltf, gltf.glb_binary.?);
             while(iter.next()) |v| {
                 for (v) |a| {
-                    try out_indices.append(a);
+                    try out_indices.append(arena,a);
                 }
             }
         }
-        for (primitive.attributes.items) |attribute| {
+        for (primitive.attributes) |attribute| {
             switch (attribute) {
                 .position => |idx| {
-                    const accessor = gltf.data.accessors.items[idx];
+                    const accessor = gltf.data.accessors[idx];
                     var iter = accessor.iterator(f32, &gltf, gltf.glb_binary.?);
                     while(iter.next()) |v| {
-                        try out_positions.append(.{ v[0], v[1], v[2] });
+                        try out_positions.append(arena, .{ v[0], v[1], v[2] });
                     }
                 },
                 .texcoord => |idx| {
-                    const accessor = gltf.data.accessors.items[idx];
+                    const accessor = gltf.data.accessors[idx];
                     var it = accessor.iterator(f32, &gltf, gltf.glb_binary.?);
                     var i: u32 = 0;
                     while (it.next()) |v| : (i += 1) {
-                        try out_texcoords.append(.{ v[0], v[1]});
+                        try out_texcoords.append(arena, .{ v[0], v[1]});
                     }
                 },
                 .normal => |idx| {
-                    const accessor = gltf.data.accessors.items[idx];
+                    const accessor = gltf.data.accessors[idx];
                     var it = accessor.iterator(f32, &gltf, gltf.glb_binary.?);
                     var i: u32 = 0;
                     while (it.next()) |v| : (i += 1) {
-                        try out_normals.append(.{ v[0], v[1], v[2]});
+                        try out_normals.append(arena, .{ v[0], v[1], v[2]});
                     }
                 },
                 else => {}
@@ -143,7 +143,7 @@ pub fn load_gltf_file(
         arena,out_positions.items.len
     );
     //defer out_vertices.deinit();
-    out_vertices.resize(out_positions.items.len) catch unreachable;
+    out_vertices.resize(arena, out_positions.items.len) catch unreachable;
     for (0..out_positions.items.len) |i| {
         out_vertices.items[i].position = out_positions.items[i];
         out_vertices.items[i].normal = out_normals.items[i];
